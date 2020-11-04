@@ -10,7 +10,7 @@ We aim to parallelize the the problem of converting an input image to string art
 First of all, what is string art? String art is a technique for the creation of visual artwork where images emerge from a set of strings that are spanned between pins. It is traditionally done with strings wounding around a grid of nails hammered into a velvet-covered wooden board. Here is a [video](https://vimeo.com/175653201) explaining how it is done.
 
 **some pictures here**
-![thread art](https://github.com/nanxili/15418-threadart/blob/gh-pages/images/vrellis.jpg)
+[thread art](http://artof01.com/vrellis/images/work/christ.jpg)
 
 
 We are going to use the algorithm presented by Birsak et al.
