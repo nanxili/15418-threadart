@@ -7,9 +7,11 @@ Catherine Yu (tianhony) Nanxi Li (nanxil1)
 We aim to parallelize the the problem of converting an input image to string art instructions on NVIDIA GPUs(using CUDA) and Multicore Machines(Using OPENMP). 
 
 ### Background
-First of all, what is string art? String art is a technique for the creation of visual artwork where images emerge from a set of strings that are spanned between pins. Here is a [video](https://vimeo.com/175653201) explaining how it is done.
+First of all, what is string art? String art is a technique for the creation of visual artwork where images emerge from a set of strings that are spanned between pins. It is traditionally done with strings wounding around a grid of nails hammered into a velvet-covered wooden board. Here is a [video](https://vimeo.com/175653201) explaining how it is done.
 
 **some pictures here**
+![thread art](https://github.com/nanxili/15418-threadart/blob/gh-pages/images/vrellis.jpg)
+
 
 We are going to use the algorithm presented by Birsak et al.
 
@@ -31,9 +33,7 @@ To parallelize finding the minimum of L2-norm for all edges, each thread needs t
 With the greedy algorithm, a barrier is always needed to find \texttt{argmin}. so another challenge would be thinking about how to divide the work to take advantage of parallelism to reduce these sequential work.
 
 ### Resources
-We have 2 implementations of the algorithm to look at\cite{matlabgithub, javagithub}, and the paper\cite{stringArtPaper} itself, but we will be implementing it in C/C++ from scratch. We still need to investigate to find the libraries that can be useful.\\
-We also have access to documentations of CUDA and OPENMP.\\
-As for machines, we will use the GHC machines for CUDA implementation, and lateday machines for OPENMP implementation.\\
+We have 2 implementations of the algorithm to look at\cite{matlabgithub, javagithub}, and the paper\cite{stringArtPaper} itself, but we will be implementing it in C/C++ from scratch. We still need to investigate to find the libraries that can be useful. We also have access to documentations of CUDA and OPENMP. As for machines, we will use the GHC machines for CUDA implementation, and lateday machines for OPENMP implementation.
 
 ### Goals and Deliverable
 \textbf{PLAN TO ACHIEVE}:\\
