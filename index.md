@@ -46,27 +46,37 @@ If our progress is slower as planned, we will only implement a parallel version 
 We chose CUDA because the same set of instructions are applied to many different edges, and the problem itself lives in the world of computer graphics, so we are curious to see how CUDA could improve performance. 
 
 ### Schedule
-* November 2 
-  * Discuss Idea with Instructors
-* November 4 
-  * Project Proposal Due Wednesday
-* November 5-9 (5 days)
-  * Research and find useful libraries to use in C and C++ 
-* November 10-18 (9 days)
+November 2 
+* Discuss Idea with Instructors
+
+November 4 
+* Project Proposal Due Wednesday
+
+November 5-9 (5 days)
+* Research and find useful libraries to use in C and C++ 
+
+November 10-18 (9 days)
   * Implement the sequential solution
-* November 19-23 (5 days) 
+
+November 19-23 (5 days) 
   * Implement a baseline CUDA version
-* November 25-December 3 (10 days) 
+
+November 25-December 3 (10 days) 
   * Add optimizations to the CUDA version
-* November 27 
+
+November 27 
   * Checkpoint Report 
-* December 3-8 (6 days) 
+
+December 3-8 (6 days) 
   * Benchmark CUDA 
-* December 8-13 (6 days)
+
+December 8-13 (6 days)
   * Write report
-* TBD(after December 13th, day before final exam slot): 
+
+TBD(after December 13th, day before final exam slot): 
   * Final Report Due
-* TBD(after December 14th, during final exam slot): 
+
+TBD(after December 14th, during final exam slot): 
   * Virtual Poster Session
 
 ### References
