@@ -4,7 +4,7 @@
 Catherine Yu (tianhony) Nanxi Li (nanxil1)
 
 ### Summary
-We aim to parallelize the the problem of converting an input image to string art instructions on NVIDIA GPUs(using CUDA) and Multicore Machines(Using OPENMP). 
+We aim to parallelize the the problem of converting an input image to string art instructions on NVIDIA GPUs(using CUDA). 
 
 ### Background
 First of all, what is string art? String art is a technique for the creation of visual artwork where images emerge from a set of strings that are spanned between pins. It is traditionally done with strings wounding around a grid of nails hammered into a velvet-covered wooden board. Here is a [video](https://vimeo.com/175653201) explaining how it is done.
@@ -25,12 +25,10 @@ The paper also explains how to use auxiliary edges to transform the solution to 
 ### The Challenge
 The first challenge of this project is implementing the algorithm itself in C/C++. In addition to the psuedocode presented in the paper, there are [matlab](https://github.com/Exception1984/StringArt) and [Java](https://github.com/jblezoray/stringart) implementations. We need to first translate the implementation into C/C++.
 
-To parallelize finding the minimum of L2-norm for all edges, each thread needs to have access to a minimum. For CUDA, there will be a lot of latency to access global minimum, but this is not a limit for OPENMP.
-
-With the greedy algorithm, a barrier is always needed to find `argmin`. so another challenge would be dividing the work to take advantage of parallelism to reduce these sequential work.
+To parallelize finding the minimum of L2-norm for all edges, each thread needs to have access to a minimum. For CUDA, there will be a lot of latency to access global minimum. With the greedy algorithm, a barrier is always needed to find `argmin`. so another challenge would be dividing the work to take advantage of parallelism to reduce these sequential work.
 
 ### Resources
-We have 2 implementations of the algorithm for reference ([matlab](https://github.com/Exception1984/StringArt), [java](https://github.com/jblezoray/stringart)) and the [paper by Birsak et al](https://www.cg.tuwien.ac.at/research/publications/2018/Birsak2018-SA/Birsak2018-SA-preprint.pdf), but we will be implementing it in C/C++ from scratch. We still need to investigate to find the libraries that can be useful. We also have access to documentations of CUDA and OPENMP. As for machines, we will use the GHC machines for CUDA implementation, and lateday machines for OPENMP implementation.
+We have 2 implementations of the algorithm for reference ([matlab](https://github.com/Exception1984/StringArt), [java](https://github.com/jblezoray/stringart)) and the [paper by Birsak et al](https://www.cg.tuwien.ac.at/research/publications/2018/Birsak2018-SA/Birsak2018-SA-preprint.pdf), but we will be implementing it in C/C++ from scratch. We still need to investigate to find the libraries that can be useful. We also have access to documentations of CUDA. As for machines, we will use the GHC machines for CUDA implementation.
 
 ### Goals and Deliverable
 PLAN TO ACHIEVE:
@@ -47,34 +45,29 @@ If our progress is slower as planned, we will only implement a parallel version 
 ### Platform Choice
 We chose CUDA because the same set of instructions are applied to many different edges, and the problem itself lives in the world of computer graphics, so we are curious to see how CUDA could improve performance. 
 
-We chose OPENMP because when we looked into this problem, the first thing that came into our mind is that there is a lot of shared memory access, and each thread does not really need to keep track of many of its own memory.
-
 ### Schedule
-Monday,  November 2nd: Discuss Idea with Instructors Monday
-
-Wednesday, November 4th: Project Proposal Due Wednesday
-
-Wednesday, November 9th: Research and find useful libraries to use in C and C++
-
-Monday, November 16th: Implement the sequential solution
-
-Friday, November 20th: Implement a baseline OPENMP version
-
-Monday, November 26th: Add optimizations to the OPENMP version
-
-Monday, November 27th: Benchmark OPENMP
-
-Friday, November 27rd: Checkpoint Report
-
-Tuesday, December 1st: Implement a baseline CUDA version
-
-Monday, December 7th: Add optimizations to the CUDA version
-
-Tuesday, December 8th: Benchmark CUDA
-
-TBD(after December 13th, day before final exam slot): Final Report Due 
-
-TBD(after December 14th, during final exam slot): Virtual Poster Session
+* November 2 
+  * Discuss Idea with Instructors
+* November 4 
+  * Project Proposal Due Wednesday
+* November 5-9 (5 days)
+  * Research and find useful libraries to use in C and C++ 
+* November 10-18 (9 days)
+  * Implement the sequential solution
+* November 19-23 (5 days) 
+  * Implement a baseline CUDA version
+* November 25-December 3 (10 days) 
+  * Add optimizations to the CUDA version
+* November 27 
+  * Checkpoint Report 
+* December 3-8 (6 days) 
+  * Benchmark CUDA 
+* December 8-13 (6 days)
+  * Write report
+* TBD(after December 13th, day before final exam slot): 
+  * Final Report Due
+* TBD(after December 14th, during final exam slot): 
+  * Virtual Poster Session
 
 ### References
 Michael Birsak et al. “String art: towards computational fabrication of string images”. In:ComputerGraphics Forum. Vol. 37. 2. Wiley Online Library. 2018, pp. 263–274 [link](https://www.cg.tuwien.ac.at/research/publications/2018/Birsak2018-SA/Birsak2018-SA-preprint.pdf)
