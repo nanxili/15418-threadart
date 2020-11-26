@@ -1,0 +1,13 @@
+[Pseudocode from https://github.com/Exception1984/StringArt/blob/master/stringArt.m ]
+
+superSamplingWindowWidth = 8;
+threadThickness = 0.15;
+numPins = 256;
+
+
+Adapt threadThickness(https://github.com/Exception1984/StringArt/blob/master/adaptThreadThickness.m)
+Convert to grayscale
+Resize image form highRes to lowRes (image now has size lowRes x lowRes)
+Enhance contrast(by stretching histogram in matlab? search for other way of doing it in C?)
+matrixPath = precomputeMatrix(numPins, threadThickness, frameDiameter, pinSideLength, superSamplingWindowWidth, dataPath);
+pickedEdgesSequencePath = [outputPath '/' outputFileNamePrefix '_NH-' num2str(numPins) '_DW-' num2str(lowRes) '_WS-' num2str(superSamplingWindowWidth) '.txt' ];
