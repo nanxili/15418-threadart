@@ -2,9 +2,9 @@
 #include <stdlib.h>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image/stb_image.h"
+#include "src/stb_image/stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image/stb_image_write.h"
+#include "src/stb_image/stb_image_write.h"
 
 size_t truncate(int32_t value)
 {   
@@ -16,7 +16,7 @@ size_t truncate(int32_t value)
 
 int main(void) {
     int width, height, channels;
-    unsigned char *img = stbi_load("sky.jpeg", &width, &height, &channels, 0);
+    unsigned char *img = stbi_load("test_images/sky.jpeg", &width, &height, &channels, 0);
     if(img == NULL) {
         printf("Error in loading the image\n");
         exit(1);
@@ -40,7 +40,7 @@ int main(void) {
              *(pg + 1) = *(p + 3);
          }
     }
-    stbi_write_jpg("sky_gray.jpeg", width, height, gray_channels, gray_img, 100);
+    stbi_write_jpg("test_images/sky_gray.jpeg", width, height, gray_channels, gray_img, 100);
     
     int contrast = 100;
     float factor = (259.0 * (contrast + 255.0)) / (255.0 * (259.0 - contrast));
@@ -50,6 +50,6 @@ int main(void) {
         *pg = (uint8_t)truncate((factor * (np - 128) + 128));
     }
     
-    stbi_write_jpg("sky_gray_contrast.jpeg", width, height, gray_channels, gray_img, 100);
+    stbi_write_jpg("test_images/sky_gray_contrast.jpeg", width, height, gray_channels, gray_img, 100);
 }
 

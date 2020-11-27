@@ -1,0 +1,4 @@
+circles of size 256x256, numPins = 64, took 41s 
+einstein of size 128x128, numPins = 64, took 50s
+einstein of size 256x256, numPins = 128, took 1965s
+krisWu of size 128x128, numPins = 128, took 129s
