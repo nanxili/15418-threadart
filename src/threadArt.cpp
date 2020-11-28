@@ -58,7 +58,7 @@ void gray_scale_image(unsigned char *orig_img, int img_size, unsigned char *gray
 }
 
 void contrast_image(unsigned char *img, int img_size, int channels) {
-    int contrast = 30;
+    int contrast = -128;
     float factor = (259.0 * (contrast + 255.0)) / (255.0 * (259.0 - contrast));
     for(unsigned char *pg = img; pg != img + img_size; pg += channels) {
         uint8_t p = (uint8_t)*pg;
@@ -244,7 +244,7 @@ int main(void) {
     std::clock_t prevTime;
     prevTime = std::clock();
 
-    const int numPins = 128;
+    const int numPins = 64;
     const int numLines = 10;
     const float threadThickness = 0.15;
     const float frameDiameter = 614.4;
@@ -291,9 +291,6 @@ int main(void) {
     unsigned char* inverted_img = (unsigned char*)malloc(cropped_size);
     invert_image(img, inverted_img, cropped_size, gray_channels);
     stbi_write_jpg("../test_images/krisWu_inverted.jpg", cropped_width, cropped_width, gray_channels, inverted_img, 100);
-    
-
-   
 
     TIMER(prevTime, "preprocessing")
     // find pin coordinates
@@ -353,8 +350,10 @@ int main(void) {
             }
             if (bestPin1 == bestPin2) { // no line can make norm any smaller
                 printf("1 pass of adding is done \n");
-                isAdd = false; // try deleting lines
-                noAddition = true;
+                // isAdd = false; // try deleting lines
+                // noRemoval = true; // remove this
+                // noAddition = true;
+                break;
                 continue;
             } 
             printf("found pin1: %d, pin2: %d\n", bestPin1, bestPin2);
