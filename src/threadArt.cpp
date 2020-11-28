@@ -94,7 +94,8 @@ void find_pinCords(int numPins, int radius, int width, int* x_coords, int* y_coo
     int x0 = radius;
     int y0 = radius;
     float a = 2*M_PI/numPins;
-    for (size_t i=0; i<numPins; i++) {
+    // printf("Radius %d, width %d\n", radius, width);
+    for (int i=0; i<numPins; i++) {
         float angle = a * i;
         float x = x0 + radius*cos(angle);
         float y = y0 + radius*sin(angle);
@@ -104,6 +105,7 @@ void find_pinCords(int numPins, int radius, int width, int* x_coords, int* y_coo
         y_coords[i] = (y > 0.0) ? floor(y + 0.5) : ceil(y - 0.5);
         if (y_coords[i] >= width) y_coords[i] = width-1;
         if (y_coords[i] <0) y_coords[i] = 0;
+        // printf("[%d](%d,%d) ", i, x_coords[i], y_coords[i]);
         
     }
     printf("Found pinCords\n");
@@ -189,7 +191,8 @@ void undoDrawLine(unsigned char *img, unsigned char* inverted_img, int* x_coords
     for (size_t i = 0; i<length; i++) {
         int x = x_coords[i];
         int y = y_coords[i];
-        img[y*width+x] = 255-inverted_img[y*width+x];
+        // img[y*width+x] = 255-inverted_img[y*width+x];
+        img[y*width+x] = 255;
     }
 }
 
@@ -244,10 +247,10 @@ int main(void) {
     std::clock_t prevTime;
     prevTime = std::clock();
 
-    const int numPins = 64;
-    const int numLines = 10;
-    const float threadThickness = 0.15;
-    const float frameDiameter = 614.4;
+    const int numPins = 128;
+    // const int numLines = 10;
+    // const float threadThickness = 0.04;
+    // const float frameDiameter = 614.4;
 
     int width, height, channels;
     // read input image
@@ -260,13 +263,13 @@ int main(void) {
     size_t gray_img_size = width * height * gray_channels;
     unsigned char *gray_img = (unsigned char*)malloc(gray_img_size);
     gray_scale_image(input_img, img_size, gray_img, channels, gray_channels);
-    stbi_write_jpg("../test_images/krisWu_gray.jpg", width, height, gray_channels, gray_img, 100);
+    stbi_write_jpg("../test_images/krisWu_locontrast_100_gray.jpg", width, height, gray_channels, gray_img, 100);
     
     // crop image to a square
     size_t shorterEdge = width>height ? height : width;
     float widthFrac = 1-((float)shorterEdge)/width;
     float heightFrac = 1-((float)shorterEdge)/height;
-    size_t cropped_width = 1; while (cropped_width <= shorterEdge) cropped_width <<= 1; cropped_width >>= 1;
+    size_t cropped_width = 1; while (cropped_width <= shorterEdge) cropped_width <<= 1; //cropped_width >>= 1;
     cropped_width /= 2;
     printf("shorterEdge: %lu, cropped_width: %lu \n", shorterEdge, cropped_width);
     size_t cropped_size = cropped_width * cropped_width * gray_channels;
@@ -275,17 +278,17 @@ int main(void) {
         STBIR_TYPE_UINT8, gray_channels, -1, 0, 
         STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP, STBIR_FILTER_DEFAULT, STBIR_FILTER_DEFAULT, STBIR_COLORSPACE_LINEAR, 
         NULL, widthFrac/2, heightFrac/2, 1-widthFrac/2, 1-heightFrac/2);
-    stbi_write_jpg("../test_images/krisWu_cropped.jpg", cropped_width, cropped_width, gray_channels, img, 100);
+    stbi_write_jpg("../test_images/krisWu_locontrast_100_cropped.jpg", cropped_width, cropped_width, gray_channels, img, 100);
     free(input_img);
     free(gray_img);
 
     // adds contrast to image
     contrast_image(img, cropped_size, gray_channels); 
-    stbi_write_jpg("../test_images/krisWu_contrast.jpg", cropped_width, cropped_width, gray_channels, img, 100);
+    stbi_write_jpg("../test_images/krisWu_locontrast_100_contrast.jpg", cropped_width, cropped_width, gray_channels, img, 100);
 
     // mask image to circle, need to use a image that does not have white background
     crop_circle(img, cropped_width, cropped_width/2);
-    stbi_write_jpg("../test_images/krisWu_circle.jpg", cropped_width, cropped_width, gray_channels, img, 100);
+    stbi_write_jpg("../test_images/krisWu_locontrast_100_circle.jpg", cropped_width, cropped_width, gray_channels, img, 100);
 
     // invert image so that darker pixel has greater value
     unsigned char* inverted_img = (unsigned char*)malloc(cropped_size);
@@ -298,7 +301,7 @@ int main(void) {
     int y_coords[numPins];
     find_pinCords(numPins, cropped_width/2, cropped_width, x_coords, y_coords);
     plot_pinCords(img, numPins, cropped_width, x_coords, y_coords);
-    stbi_write_jpg("../test_images/krisWu_pins.jpg", cropped_width, cropped_width, gray_channels, img, 100);
+    stbi_write_jpg("../test_images/krisWu_locontrast_100_pins.jpg", cropped_width, cropped_width, gray_channels, img, 100);
     TIMER(prevTime, "finding pins");
 
     // // test draw lines
@@ -307,7 +310,7 @@ int main(void) {
     // int line_length;
     // find_linePixels(x_coords[8], y_coords[8], x_coords[2], y_coords[2], line_x, line_y, &line_length, cropped_width);
     // drawLine(img, line_x, line_y, line_length, cropped_width);
-    // stbi_write_jpg("../test_images/krisWu_line_test.jpg", cropped_width, cropped_width, gray_channels, img, 100);
+    // stbi_write_jpg("../test_images/krisWu_locontrast_100_line_test.jpg", cropped_width, cropped_width, gray_channels, img, 100);
 
     size_t currNorm = 0;
     int line_length;
@@ -362,6 +365,12 @@ int main(void) {
             add_line2Img(constructed_img, img, cropped_width, line_x, line_y, line_length);
             found_p1.push(bestPin1);
             found_p2.push(bestPin2);
+            // if (bestPin1 == 109 && bestPin2 == 20){
+            //     printf("Testing (109, 20) \n");
+            //     for (int index = 0; index < line_length; index++) {
+            //         printf("[%d] (%d, %d) | ", index, line_x[index], line_y[index]);
+            //     }
+            // }
         }
         else { //isAdd == false
             printf("inside else\n");
@@ -379,6 +388,7 @@ int main(void) {
                 if (tmp_norm < bestNorm) {
                     noAddition = false;
                     remove_lineFromImg(constructed_img, inverted_img,cropped_width, line_x, line_y, line_length);
+                    printf("removing (%d,%d)\n",p1,p2); 
                     bestNorm = tmp_norm;
                     if (p1 == firstP1 && p2 == firstP2) {
                         firstP1 = found_p1.front();
@@ -400,10 +410,10 @@ int main(void) {
         if (noAddition && noRemoval) break;
         currNorm = bestNorm;
     }
-    stbi_write_jpg("../test_images/krisWu_lines.jpg", cropped_width, cropped_width, gray_channels, img, 100);
+    stbi_write_jpg("../test_images/krisWu_locontrast_100_lines.jpg", cropped_width, cropped_width, gray_channels, img, 100);
     unsigned char* inverted_constructed_img = (unsigned char*)malloc(cropped_size);
     invert_image(constructed_img, inverted_constructed_img, cropped_size, gray_channels);
-    stbi_write_jpg("../test_images/krisWu_justlines.jpg", cropped_width, cropped_width, gray_channels, inverted_constructed_img, 100);
+    stbi_write_jpg("../test_images/krisWu_locontrast_100_justlines.jpg", cropped_width, cropped_width, gray_channels, inverted_constructed_img, 100);
     TIMER(prevTime, "finding edges")
 }
 
