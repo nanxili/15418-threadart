@@ -34,7 +34,7 @@ size_t truncate(int32_t value)
 
 unsigned char* read_image(int* width, int* height, int* channels) {
     unsigned char* img;
-    img = stbi_load("../test_images/einstein.jpg", width, height, channels, 0);
+    img = stbi_load("../test_images/einstein.jpeg", width, height, channels, 0);
     if(img == NULL) {
         printf("Error in loading the image\n");
         exit(1);
@@ -58,7 +58,8 @@ void gray_scale_image(unsigned char *orig_img, int img_size, unsigned char *gray
 }
 
 void contrast_image(unsigned char *img, int img_size, int channels) {
-    int contrast = -200;
+    // int contrast = -200;
+    int contrast = 0;
     float factor = (259.0 * (contrast + 255.0)) / (255.0 * (259.0 - contrast));
     for(unsigned char *pg = img; pg != img + img_size; pg += channels) {
         uint8_t p = (uint8_t)*pg;
@@ -293,7 +294,9 @@ void draw_lines(std::queue<int> found_p1, std::queue<int> found_p2, int* x_coord
     //   get coord of p1, found_p2
     //   get the line between p1,p2,
     //   draw the line 
-    
+    for (size_t i = 0; i < width * width; i++) {
+        constructed_img[i] = 0;
+    }
     int size = found_p1.size();
     assert(size == found_p2.size());
     int p1 = found_p1.front();
@@ -312,6 +315,8 @@ void draw_lines(std::queue<int> found_p1, std::queue<int> found_p2, int* x_coord
         add_line2Img(constructed_img, img, width, line_x, line_y, line_length);
         found_p1.push(p1);
         found_p2.push(p2);
+        p1 = found_p1.front();
+        p2 = found_p2.front();
         found_p1.pop();
         found_p2.pop();
     }
@@ -338,23 +343,23 @@ int main(void) {
     size_t gray_img_size = width * height * gray_channels;
     unsigned char *gray_img = (unsigned char*)malloc(gray_img_size);
     gray_scale_image(input_img, img_size, gray_img, channels, gray_channels);
-    stbi_write_jpg("../test_images/einstein_gray.jpg", width, height, gray_channels, gray_img, 100);
+    // stbi_write_jpg("../test_images/einstein_gray.jpg", width, height, gray_channels, gray_img, 100);
     
     // crop image to a square
     size_t shorterEdge = width>height ? height : width;
     float widthFrac = 1-((float)shorterEdge)/width;
     float heightFrac = 1-((float)shorterEdge)/height;
     size_t cropped_width = 1; while (cropped_width <= shorterEdge) cropped_width <<= 1; 
-    cropped_width /= 2;
-    // cropped_width /= 8;
-    printf("shorterEdge: %lu, cropped_width: %lu \n", shorterEdge, cropped_width);
+    // cropped_width /= 2;
+    cropped_width /= 8;
+    printf("shorterEdge: %lu, cropped_width: %lu, numPins: %d \n", shorterEdge, cropped_width, numPins);
     size_t cropped_size = cropped_width * cropped_width * gray_channels;
     unsigned char* img = (unsigned char*)malloc(cropped_size);
     stbir_resize_region(gray_img, width, height, 0, img, cropped_width, cropped_width, 0, 
         STBIR_TYPE_UINT8, gray_channels, -1, 0, 
         STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP, STBIR_FILTER_DEFAULT, STBIR_FILTER_DEFAULT, STBIR_COLORSPACE_LINEAR, 
         NULL, widthFrac/2, heightFrac/2, 1-widthFrac/2, 1-heightFrac/2);
-    stbi_write_jpg("../test_images/einstein_cropped.jpg", cropped_width, cropped_width, gray_channels, img, 100);
+    // stbi_write_jpg("../test_images/einstein_cropped.jpg", cropped_width, cropped_width, gray_channels, img, 100);
     unsigned char* original_img = (unsigned char*)malloc(cropped_size); // for restoration
     memcpy ( &original_img, &img, sizeof(img) );
     free(input_img);
@@ -366,12 +371,12 @@ int main(void) {
 
     // mask image to circle, need to use a image that does not have white background
     crop_circle(img, cropped_width, cropped_width/2);
-    stbi_write_jpg("../test_images/einstein_circle.jpg", cropped_width, cropped_width, gray_channels, img, 100);
+    // stbi_write_jpg("../test_images/einstein_circle.jpg", cropped_width, cropped_width, gray_channels, img, 100);
 
     // invert image so that darker pixel has greater value
     unsigned char* inverted_img = (unsigned char*)malloc(cropped_size);
     invert_image(img, inverted_img, cropped_size, gray_channels);
-    stbi_write_jpg("../test_images/einstein_inverted.jpg", cropped_width, cropped_width, gray_channels, inverted_img, 100);
+    // stbi_write_jpg("../test_images/einstein_inverted.jpg", cropped_width, cropped_width, gray_channels, inverted_img, 100);
     
     TIMER(prevTime, "preprocessing")
     // find pin coordinates
@@ -404,6 +409,7 @@ int main(void) {
         currNorm += inverted_img[i]*inverted_img[i];
     }
     unsigned char* test_img = (unsigned char*)malloc(cropped_size);
+    printf("initial l2 norm: %lu \n", currNorm);
     // initialize the constructed img to be blank
     for (size_t i = 0; i<cropped_size; i++) {
         test_img[i] = 0;
@@ -438,13 +444,13 @@ int main(void) {
             }
             if (bestPin1 == bestPin2) { // no line can make norm any smaller
                 printf("1 pass of adding is done \n");
-                // isAdd = false; // try deleting lines
+                isAdd = false; // try deleting lines
                 // noRemoval = true; // remove this
-                // noAddition = true;
-                break;
+                noAddition = true;
+                // break;
                 continue;
             } 
-            printf("found pin1: %d, pin2: %d\n", bestPin1, bestPin2);
+            // printf("found pin1: %d, pin2: %d\n", bestPin1, bestPin2);
             // whiten the pixels covered by line
             find_linePixels(x_coords[bestPin1], y_coords[bestPin1], x_coords[bestPin2], y_coords[bestPin2], line_x, line_y, &line_length, cropped_width);
             add_line2Img(constructed_img, img, cropped_width, line_x, line_y, line_length);
@@ -465,24 +471,26 @@ int main(void) {
             int p1 = firstP1;
             int p2 = firstP2;
             do {
-                // printf("p1: %d, p2: %d \n", p1, p2);
                 found_p1.pop();
                 found_p2.pop();
-                find_linePixels(x_coords[p1], y_coords[p1], x_coords[p2], y_coords[p2], line_x, line_y, &line_length, cropped_width);
+                memcpy( &img, &original_img, sizeof(img) );
+                draw_lines(found_p1, found_p2, x_coords, y_coords, constructed_img, img, cropped_width);
+                // find_linePixels(x_coords[p1], y_coords[p1], x_coords[p2], y_coords[p2], line_x, line_y, &line_length, cropped_width);
                 size_t tmp_norm = l2_norm(constructed_img, inverted_img, cropped_size, cropped_width, line_x, line_y, line_length, false);
+                // printf("p1: %d, p2: %d, tmp_norm: %lu, bestNorm: %lu \n", p1, p2, tmp_norm, bestNorm);
                 if (tmp_norm < bestNorm) {
                     noAddition = false;
                     // remove_lineFromImg(constructed_img, img, inverted_img, cropped_width, line_x, line_y, line_length);
                     /* redraw image with one line removed */
-                    memcpy( &img, &original_img, sizeof(img) );
-                    draw_lines(found_p1, found_p2, x_coords, y_coords, constructed_img, img, cropped_width);
+                    // memcpy( &img, &original_img, sizeof(img) );
+                    // draw_lines(found_p1, found_p2, x_coords, y_coords, constructed_img, img, cropped_width);
 
                     printf("removing (%d,%d)\n",p1,p2); 
-                    int test_line_length;
-                    int test_line_x[cropped_width];
-                    int test_line_y[cropped_width];
-                    find_linePixels(x_coords[p1], y_coords[p1], x_coords[p2], y_coords[p2], test_line_x, test_line_y, &test_line_length, cropped_width);
-                    add_line2Img(test_img, test_img_original, cropped_width, line_x, line_y, line_length);
+                    // int test_line_length;
+                    // int test_line_x[cropped_width];
+                    // int test_line_y[cropped_width];
+                    // find_linePixels(x_coords[p1], y_coords[p1], x_coords[p2], y_coords[p2], test_line_x, test_line_y, &test_line_length, cropped_width);
+                    // add_line2Img(test_img, test_img_original, cropped_width, line_x, line_y, line_length);
                     bestNorm = tmp_norm;
                     if (p1 == firstP1 && p2 == firstP2) {
                         firstP1 = found_p1.front();
