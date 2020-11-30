@@ -318,10 +318,11 @@ void draw_lines(std::queue<int> found_p1, std::queue<int> found_p2, int* x_coord
     }
     int size = found_p1.size();
     assert(size == found_p2.size());
-    int p1 = found_p1.front();
-    int p2 = found_p2.front();
+
     for (int i = 0; i < size; i++){
         // find cooridinates of the pin pair
+        int p1 = found_p1.front();
+        int p2 = found_p2.front();
         int p1_x = x_coords[p1];
         int p1_y = y_coords[p1];
         int p2_x = x_coords[p2];
@@ -334,8 +335,6 @@ void draw_lines(std::queue<int> found_p1, std::queue<int> found_p2, int* x_coord
         add_line2Img(constructed_img, img, width, line_x, line_y, line_length);
         found_p1.push(p1);
         found_p2.push(p2);
-        p1 = found_p1.front();
-        p2 = found_p2.front();
         found_p1.pop();
         found_p2.pop();
     }
@@ -561,6 +560,8 @@ int main(int argc, char* argv[]) {
                 p1 = found_p1.front();
                 p2 = found_p2.front();
             } while (p1 != firstP1 || p2 != firstP2);
+            memcpy( &img, &original_img, sizeof(img));
+            draw_lines(found_p1, found_p2, x_coords, y_coords, constructed_img, img, cropped_width);
             isAdd = true;
             noRemoval = true;
             printf("1 pass of removing is done\n");
