@@ -146,36 +146,80 @@ void find_linePixels(int pin1x, int pin1y, int pin2x, int pin2y, int* line_x, in
         *length = endY - startY;
         return;
     }
+
+    if (pin1y == pin2y) { // if same x coords, draw vertical line
+        // printf("pin1x == pin2x\n");
+        int startX = pin1x>pin2x ? pin2x : pin1x;
+        int endX = pin1x>pin2x ? pin1x : pin2x;
+        for (size_t i = startX; i<endX; i++) {
+            line_y[i-startX] = pin1y;
+            line_x[i-startX] = i;
+        }
+        *length = endX - startX;
+        return;
+    }
     // find the line that passes through two points
     float a, b, c;
-    int startX, endX, startY;
-    if (pin1x>pin2x) {
-        startX = pin2x;
-        startY = pin2y;
-        endX = pin1x;
-        a = ((float)pin1y)-pin2y;
-        b = ((float)pin1x)-pin2x;
+    int startX, endX, startY, endY;
+    if (abs(pin1x-pin2x) > abs(pin1y-pin2y)) {
+        if (pin1x>pin2x) {
+            startX = pin2x;
+            startY = pin2y;
+            endX = pin1x;
+            a = ((float)pin1y)-pin2y;
+            b = ((float)pin1x)-pin2x;
+        }
+        else {
+            startX = pin1x;
+            startY = pin1y;
+            endX = pin2x;
+            a = ((float)pin2y)-pin1y;
+            b = ((float)pin2x)-pin1x;
+        }
+        float m = a/b;
+        float k = startY - (m * startX);
+        // printf("startX: %d, endX: %d, a: %f, c: %f\n", startX, endX, a, c);
+        for (size_t i = startX; i<endX; i++) {
+            line_x[i-startX] = i;
+            float y = m*i+k;
+            if (y>=(width*1.0)) y = ((width-1)*1.0);
+            if (y<0) y = 0.0;
+            line_y[i-startX] = floor(y);
+            // if(line_y[i-startX]>=width) printf("width: %d, line_y[i-startX]<width: %d\n", width, line_y[i-startX]);
+            assert(line_y[i-startX]<width);
+        }
+        *length = endX-startX;
     }
     else {
-        startX = pin1x;
-        startY = pin1y;
-        endX = pin2x;
-        a = ((float)pin2y)-pin1y;
-        b = ((float)pin2x)-pin1x;
+        if (pin1y>pin2y) {
+            startX = pin2x;
+            startY = pin2y;
+            endY = pin1y;
+            a = ((float)pin1y)-pin2y;
+            b = ((float)pin1x)-pin2x;
+        }
+        else {
+            startX = pin1x;
+            startY = pin1y;
+            endY = pin2y;
+            a = ((float)pin2y)-pin1y;
+            b = ((float)pin2x)-pin1x;
+        }
+        float m = a/b;
+        float k = startY - (m * startX);
+        // printf("startX: %d, endX: %d, a: %f, c: %f\n", startX, endX, a, c);
+        for (size_t i = startY; i<endY; i++) {
+            line_y[i-startY] = i;
+            float x = (i-k)/m;
+            if (x>=(width*1.0)) x = ((width-1)*1.0);
+            if (x<0) x = 0.0;
+            line_x[i-startY] = floor(x);
+            // if(line_y[i-startX]>=width) printf("width: %d, line_y[i-startX]<width: %d\n", width, line_y[i-startX]);
+            assert(line_y[i-startY]<width);
+        }
+        *length = endY-startY;
     }
-    float m = a/b;
-    float k = startY - (m * startX);
-    // printf("startX: %d, endX: %d, a: %f, c: %f\n", startX, endX, a, c);
-    for (size_t i = startX; i<endX; i++) {
-        line_x[i-startX] = i;
-        float y = m*i+k;
-        if (y>=(width*1.0)) y = ((width-1)*1.0);
-        if (y<0) y = 0.0;
-        line_y[i-startX] = floor(y);
-        // if(line_y[i-startX]>=width) printf("width: %d, line_y[i-startX]<width: %d\n", width, line_y[i-startX]);
-        assert(line_y[i-startX]<width);
-    }
-    *length = endX-startX;
+    
 }
 
 void drawLine(unsigned char *img, int* x_coords, int* y_coords, int length, int width) {
@@ -302,6 +346,7 @@ int main(void) {
     float heightFrac = 1-((float)shorterEdge)/height;
     size_t cropped_width = 1; while (cropped_width <= shorterEdge) cropped_width <<= 1; 
     cropped_width /= 2;
+    // cropped_width /= 8;
     printf("shorterEdge: %lu, cropped_width: %lu \n", shorterEdge, cropped_width);
     size_t cropped_size = cropped_width * cropped_width * gray_channels;
     unsigned char* img = (unsigned char*)malloc(cropped_size);
