@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <getopt.h>
 #include <iostream>
 #include <math.h>
 #include <limits> 
@@ -24,17 +26,34 @@ double duration;
     prevTime = currTime; \
     std::cout << text << " takes " << duration << "s" << std::endl; \
 
+std::string remove_extension(const std::string& filename) {
+    size_t lastdot = filename.find_last_of(".");
+    if (lastdot == std::string::npos) return filename;
+    return filename.substr(0, lastdot); 
+}
+
 size_t truncate(int32_t value)
 {   
     if(value < 0) return 0;
     if(value > 255) return 255;
-
     return value;
 }
 
-unsigned char* read_image(int* width, int* height, int* channels) {
+bool isPowerOfTwo(int n)
+{
+   if(n==0) return false;
+   return (ceil(log2(n)) == floor(log2(n)));
+}
+
+size_t roundDownPowersOfTwo(size_t n) {
+    size_t res = 1;
+    while (res <= n) res <<= 1; 
+    return res>>=1;
+}
+
+unsigned char* read_image(std::string f_name, int* width, int* height, int* channels) {
     unsigned char* img;
-    img = stbi_load("../test_images/einstein.jpeg", width, height, channels, 0);
+    img = stbi_load(f_name.c_str(), width, height, channels, 0);
     if(img == NULL) {
         printf("Error in loading the image\n");
         exit(1);
@@ -322,20 +341,59 @@ void draw_lines(std::queue<int> found_p1, std::queue<int> found_p2, int* x_coord
     }
 }
 
+void usage(const char* progname) {
+    printf("Program Options:\n");
+    printf("  -f  --file_name <FILE_TO_READ>    must be of format jpg\n");
+    printf("  -w  --width <OUTPUT_WIDTH>        must be power of 2\n");
+    printf("  -p  --numPins  <NUMBER_OF_PINS>   must be power of 2\n");
+    printf("  -h  --help                        This message\n");
+}
 
-int main(void) {
+int main(int argc, char* argv[]) {
+    // parse command line options
+    int opt;
+    int out_width = 512;
+    int numPins = 64;
+    std::string file_name;
+    static struct option long_options[] = {
+        {"help", 0, 0,  'h'},
+        {"file_name", 1, 0,  'f'},
+        {"width", 1, 0,  'w'},
+        {"numPins", 1, 0,  'p'},
+        {0 ,0, 0, 0}
+    };
+
+    while ((opt = getopt_long(argc, argv, "f:w:p:h", long_options, NULL)) != EOF) {
+        switch (opt) {
+        case 'f':
+            file_name = std::string(optarg);
+            break;
+        case 'w':
+            out_width = atoi(optarg);
+            if (!isPowerOfTwo(out_width)) return 1;
+            break;
+        case 'p':
+            numPins = atoi(optarg);
+            if (!isPowerOfTwo(numPins)) return 1;
+            break;
+        case 'h':
+            usage(argv[0]);
+            return 0;
+        default:
+            usage(argv[0]);
+            return 1;
+        }
+    }
+    std::cout << "file name: " << file_name << ", outputs size: " << out_width << ", number of pins: " << numPins << std::endl;
+
     std::clock_t prevTime;
     prevTime = std::clock();
 
-    const int numPins = 64;
-    // const int numLines = 10;
-    // const float threadThickness = 0.04;
-    // const float frameDiameter = 614.4;
-
     int width, height, channels;
     // read input image
-    unsigned char* input_img = read_image(&width, &height, &channels);
+    unsigned char* input_img = read_image(file_name, &width, &height, &channels);
     TIMER(prevTime, "reading image")
+    file_name = remove_extension(file_name);
 
     // Convert the input image to gray
     int gray_channels = channels == 4 ? 2 : 1;
@@ -343,23 +401,23 @@ int main(void) {
     size_t gray_img_size = width * height * gray_channels;
     unsigned char *gray_img = (unsigned char*)malloc(gray_img_size);
     gray_scale_image(input_img, img_size, gray_img, channels, gray_channels);
-    // stbi_write_jpg("../test_images/einstein_gray.jpg", width, height, gray_channels, gray_img, 100);
+    // stbi_write_jpg("../test_images/peace_gray.jpg", width, height, gray_channels, gray_img, 100);
     
     // crop image to a square
     size_t shorterEdge = width>height ? height : width;
     float widthFrac = 1-((float)shorterEdge)/width;
     float heightFrac = 1-((float)shorterEdge)/height;
-    size_t cropped_width = 1; while (cropped_width <= shorterEdge) cropped_width <<= 1; 
-    // cropped_width /= 2;
-    cropped_width /= 8;
-    printf("shorterEdge: %lu, cropped_width: %lu, numPins: %d \n", shorterEdge, cropped_width, numPins);
+    size_t cropped_width = roundDownPowersOfTwo(shorterEdge);
+    //set ouout_width and cropped_width to be the min of the two
+    out_width = out_width < cropped_width ? out_width : cropped_width;
+    cropped_width = out_width;
     size_t cropped_size = cropped_width * cropped_width * gray_channels;
     unsigned char* img = (unsigned char*)malloc(cropped_size);
     stbir_resize_region(gray_img, width, height, 0, img, cropped_width, cropped_width, 0, 
         STBIR_TYPE_UINT8, gray_channels, -1, 0, 
         STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP, STBIR_FILTER_DEFAULT, STBIR_FILTER_DEFAULT, STBIR_COLORSPACE_LINEAR, 
         NULL, widthFrac/2, heightFrac/2, 1-widthFrac/2, 1-heightFrac/2);
-    // stbi_write_jpg("../test_images/einstein_cropped.jpg", cropped_width, cropped_width, gray_channels, img, 100);
+    // stbi_write_jpg((file_name+"NP"+std::to_string(numPins) + "w" + std::to_string(cropped_width)+"_cropped.jpg").c_str(), cropped_width, cropped_width, gray_channels, img, 100);
     unsigned char* original_img = (unsigned char*)malloc(cropped_size); // for restoration
     memcpy ( &original_img, &img, sizeof(img) );
     free(input_img);
@@ -367,16 +425,16 @@ int main(void) {
 
     // adds contrast to image
     contrast_image(img, cropped_size, gray_channels); 
-    stbi_write_jpg("../test_images/einstein_contrast.jpg", cropped_width, cropped_width, gray_channels, img, 100);
+    // stbi_write_jpg((file_name+"NP"+std::to_string(numPins) + "w" + std::to_string(cropped_width)+"_contrast.jpg").c_str(), cropped_width, cropped_width, gray_channels, img, 100);
 
     // mask image to circle, need to use a image that does not have white background
     crop_circle(img, cropped_width, cropped_width/2);
-    // stbi_write_jpg("../test_images/einstein_circle.jpg", cropped_width, cropped_width, gray_channels, img, 100);
+    // stbi_write_jpg((file_name+"NP"+std::to_string(numPins) + "w" + std::to_string(cropped_width)+"_circle.jpg").c_str(), cropped_width, cropped_width, gray_channels, img, 100);
 
     // invert image so that darker pixel has greater value
     unsigned char* inverted_img = (unsigned char*)malloc(cropped_size);
     invert_image(img, inverted_img, cropped_size, gray_channels);
-    // stbi_write_jpg("../test_images/einstein_inverted.jpg", cropped_width, cropped_width, gray_channels, inverted_img, 100);
+    // stbi_write_jpg((file_name+"NP"+std::to_string(numPins) + "w" + std::to_string(cropped_width)+"_inverted.jpg").c_str(), cropped_width, cropped_width, gray_channels, inverted_img, 100);
     
     TIMER(prevTime, "preprocessing")
     // find pin coordinates
@@ -384,7 +442,7 @@ int main(void) {
     int y_coords[numPins];
     find_pinCords(numPins, cropped_width/2, cropped_width, x_coords, y_coords);
     plot_pinCords(img, numPins, cropped_width, x_coords, y_coords);
-    stbi_write_jpg("../test_images/einstein_pins.jpg", cropped_width, cropped_width, gray_channels, img, 100);
+    stbi_write_jpg((file_name+"NP"+std::to_string(numPins) + "w" + std::to_string(cropped_width)+"_pins.jpg").c_str(), cropped_width, cropped_width, gray_channels, img, 100);
     TIMER(prevTime, "finding pins");
 
     // // test draw lines
@@ -393,7 +451,7 @@ int main(void) {
     // int line_length;
     // find_linePixels(x_coords[8], y_coords[8], x_coords[2], y_coords[2], line_x, line_y, &line_length, cropped_width);
     // drawLine(img, line_x, line_y, line_length, cropped_width);
-    // stbi_write_jpg("../test_images/einstein_line_test.jpg", cropped_width, cropped_width, gray_channels, img, 100);
+    // stbi_write_jpg((file_name+"NP"+std::to_string(numPins) + "w" + std::to_string(cropped_width)+"_test_lines.jpg").c_str(), cropped_width, cropped_width, gray_channels, img, 100);
 
     size_t currNorm = 0;
     int line_length;
@@ -464,7 +522,6 @@ int main(void) {
             // }
         }
         else { //isAdd == false
-            printf("inside else\n");
             int firstP1 = found_p1.front();
             int firstP2 = found_p2.front();
             // printf("firstP1: %d, firstP2: %d\n", firstP1, firstP2);
@@ -512,13 +569,9 @@ int main(void) {
         if (noAddition && noRemoval) break;
         currNorm = bestNorm;
     }
-    stbi_write_jpg("../test_images/einstein_lines.jpg", cropped_width, cropped_width, gray_channels, img, 100);
+    stbi_write_jpg((file_name+"NP"+std::to_string(numPins) + "w" + std::to_string(cropped_width) + "_lines.jpg").c_str(), cropped_width, cropped_width, gray_channels, img, 100);
     unsigned char* inverted_constructed_img = (unsigned char*)malloc(cropped_size);
     invert_image(constructed_img, inverted_constructed_img, cropped_size, gray_channels);
-    stbi_write_jpg("../test_images/einstein_justlines.jpg", cropped_width, cropped_width, gray_channels, inverted_constructed_img, 100);
-
-
-    stbi_write_jpg("../test_images/einstein_test_remove.jpg", cropped_width, cropped_width, gray_channels, test_img, 100);
+    stbi_write_jpg((file_name+"NP"+std::to_string(numPins) + "w" + std::to_string(cropped_width) +"_justlines.jpg").c_str(), cropped_width, cropped_width, gray_channels, inverted_constructed_img, 100);
     TIMER(prevTime, "finding edges")
 }
-
