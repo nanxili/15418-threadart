@@ -530,7 +530,7 @@ int main(int argc, char* argv[]) {
             do {
                 found_p1.pop();
                 found_p2.pop();
-                memcpy( &img, &original_img, sizeof(img) );
+                memcpy( &img, &original_img, sizeof(img));
                 draw_lines(found_p1, found_p2, x_coords, y_coords, constructed_img, img, cropped_width);
                 // find_linePixels(x_coords[p1], y_coords[p1], x_coords[p2], y_coords[p2], line_x, line_y, &line_length, cropped_width);
                 size_t tmp_norm = l2_norm(constructed_img, inverted_img, cropped_size, cropped_width, line_x, line_y, line_length, false);
@@ -574,4 +574,9 @@ int main(int argc, char* argv[]) {
     invert_image(constructed_img, inverted_constructed_img, cropped_size, gray_channels);
     stbi_write_jpg((file_name+"NP"+std::to_string(numPins) + "w" + std::to_string(cropped_width) +"_justlines.jpg").c_str(), cropped_width, cropped_width, gray_channels, inverted_constructed_img, 100);
     TIMER(prevTime, "finding edges")
+
+    free(constructed_img);
+    free(img);
+    free(inverted_constructed_img);
+    free(inverted_img);
 }
