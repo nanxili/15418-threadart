@@ -15,6 +15,8 @@
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb_image/stb_image_resize.h"
 
+void hello_world();
+
 std::clock_t currTime;
 double duration;
 
@@ -343,6 +345,7 @@ int main(int argc, char* argv[]) {
             return 1;
         }
     }
+
     std::cout << "file name: " << file_name << ", outputs size: " << out_width << ", number of pins: " << numPins << std::endl;
 
     std::clock_t prevTime;
@@ -423,6 +426,9 @@ int main(int argc, char* argv[]) {
     for (size_t i = 0; i<cropped_size; i++) {
         test_img[i] = 0;
     }
+
+    hello_world();
+
     unsigned char* test_img_original = (unsigned char*)malloc(cropped_size);
     memcpy(test_img_original, constructed_img, sizeof(test_img));
     size_t bestNorm = currNorm;
