@@ -115,7 +115,6 @@ void find_pinCords(int numPins, int radius, int width, int* x_coords, int* y_coo
     int x0 = radius;
     int y0 = radius;
     float a = 2*M_PI/numPins;
-    // printf("Radius %d, width %d\n", radius, width);
     for (int i=0; i<numPins; i++) {
         float angle = a * i;
         float x = x0 + radius*cos(angle);
@@ -126,19 +125,15 @@ void find_pinCords(int numPins, int radius, int width, int* x_coords, int* y_coo
         y_coords[i] = (y > 0.0) ? floor(y + 0.5) : ceil(y - 0.5);
         if (y_coords[i] >= width) y_coords[i] = width-1;
         if (y_coords[i] <0) y_coords[i] = 0;
-        // printf("[%d](%d,%d) ", i, x_coords[i], y_coords[i]);
-        
     }
     printf("Found pinCords\n");
 }
 
 void plot_pinCords(unsigned char *img, int numPins, int width, int* x_coords, int* y_coords) {
     // the greater the i, the darker the pin
-    // printf("inside plot_pinCords, width: %d, numPins: %d \n", width, numPins);
     for (size_t i=0; i<numPins; i++) {
         int x = x_coords[i];
         int y = y_coords[i];
-        // printf("i: %lu, x: %d, y: %d \n", i, x, y);
         // make pin 9 pixels size to be more visible
         if (y>0) img[(y-1)*width+x] = 255-(255*i/numPins);
         if (y>1) img[(y-2)*width+x] = 255-(255*i/numPins);
@@ -154,9 +149,7 @@ void plot_pinCords(unsigned char *img, int numPins, int width, int* x_coords, in
 }
 
 void find_linePixels(int pin1x, int pin1y, int pin2x, int pin2y, int* line_x, int* line_y, int* length, int width) {
-    // printf("find_linePixels pin1x: %d, pin1y: %d, pin2x: %d, pin2y: %d\n", pin1x, pin1y, pin2x, pin2y);
     if (pin1x == pin2x) { // if same x coords, draw vertical line
-        // printf("pin1x == pin2x\n");
         int startY = pin1y>pin2y ? pin2y : pin1y;
         int endY = pin1y>pin2y ? pin1y : pin2y;
         for (size_t i = startY; i<endY; i++) {
@@ -168,7 +161,6 @@ void find_linePixels(int pin1x, int pin1y, int pin2x, int pin2y, int* line_x, in
     }
 
     if (pin1y == pin2y) { // if same x coords, draw vertical line
-        // printf("pin1x == pin2x\n");
         int startX = pin1x>pin2x ? pin2x : pin1x;
         int endX = pin1x>pin2x ? pin1x : pin2x;
         for (size_t i = startX; i<endX; i++) {
@@ -198,14 +190,12 @@ void find_linePixels(int pin1x, int pin1y, int pin2x, int pin2y, int* line_x, in
         }
         float m = a/b;
         float k = startY - (m * startX);
-        // printf("startX: %d, endX: %d, a: %f, c: %f\n", startX, endX, a, c);
         for (size_t i = startX; i<endX; i++) {
             line_x[i-startX] = i;
             float y = m*i+k;
             if (y>=(width*1.0)) y = ((width-1)*1.0);
             if (y<0) y = 0.0;
             line_y[i-startX] = floor(y);
-            // if(line_y[i-startX]>=width) printf("width: %d, line_y[i-startX]<width: %d\n", width, line_y[i-startX]);
             assert(line_y[i-startX]<width);
         }
         *length = endX-startX;
@@ -227,14 +217,12 @@ void find_linePixels(int pin1x, int pin1y, int pin2x, int pin2y, int* line_x, in
         }
         float m = a/b;
         float k = startY - (m * startX);
-        // printf("startX: %d, endX: %d, a: %f, c: %f\n", startX, endX, a, c);
         for (size_t i = startY; i<endY; i++) {
             line_y[i-startY] = i;
             float x = (i-k)/m;
             if (x>=(width*1.0)) x = ((width-1)*1.0);
             if (x<0) x = 0.0;
             line_x[i-startY] = floor(x);
-            // if(line_y[i-startX]>=width) printf("width: %d, line_y[i-startX]<width: %d\n", width, line_y[i-startX]);
             assert(line_y[i-startY]<width);
         }
         *length = endY-startY;
@@ -243,7 +231,6 @@ void find_linePixels(int pin1x, int pin1y, int pin2x, int pin2y, int* line_x, in
 }
 
 void drawLine(unsigned char *img, int* x_coords, int* y_coords, int length, int width) {
-    // printf("length = %d \n", length);
     for (size_t i = 0; i<length; i++) {
         int x = x_coords[i];
         int y = y_coords[i];
@@ -251,42 +238,24 @@ void drawLine(unsigned char *img, int* x_coords, int* y_coords, int length, int 
     }
 }
 
-// void undoDrawLine(unsigned char *img, unsigned char* inverted_img, int* x_coords, int* y_coords, int length, int width) {
-//     // printf("length = %d \n", length);
-//     for (size_t i = 0; i<length; i++) {
-//         int x = x_coords[i];
-//         int y = y_coords[i];
-//         img[y*width+x] = 255-inverted_img[y*width+x];
-//         // img[y*width+x] = 255;
-//     }
-// }
-
 size_t l2_norm(unsigned char* constructed_img, unsigned char* inverted_img, int image_size, int width, int* line_x, int* line_y, int line_length, bool isAdd) {
     unsigned char tmp_img[image_size];
     size_t l2_norm = 0;
     for (size_t i = 0; i<image_size; i++) {
         tmp_img[i] = constructed_img[i];
     }
-    // printf("cp0.1 line_length: %d\n", line_length);
 
     for (size_t i = 0; i<line_length; i++) {
-        // printf("i: %lu, p0.1.1\n", i);
         int x = line_x[i];
         int y = line_y[i];
-        // printf("x: %d, y: %d, p0.1.2\n", x, y);
         if (isAdd) tmp_img[y*width+x] = 255;
         else tmp_img[y*width+x] = 0;
     }
-    // printf("cp0.2\n");
 
     for (size_t i = 0; i<image_size; i++) {
-        // printf("tmp_img[i]: %d, inverted_img[i]: %d \n", (uint8_t)tmp_img[i], (uint8_t)inverted_img[i]);
         size_t d = tmp_img[i]-inverted_img[i];
-        // if (d!=0) printf("tmp_img[i]: %d, inverted_img[i]: %d \n", (uint8_t)tmp_img[i], (uint8_t)inverted_img[i]);
         l2_norm += d*d;
-        // if(d!=0) printf("l2_norm: %lu \n", l2_norm);
     }
-    // printf("cp0.3\n");
     return l2_norm;
 }
 
@@ -299,15 +268,6 @@ void add_line2Img(unsigned char* constructed_img, unsigned char* img, int width,
     drawLine(img, line_x, line_y, length, width);
 }
 
-// void remove_lineFromImg(unsigned char* constructed_img, unsigned char* img, unsigned char* inverted_img, int width, int* line_x, int* line_y, int length) {
-//     for (size_t i = 0; i<length; i++) {
-//         int x = line_x[i];
-//         int y = line_y[i];
-//         constructed_img[y*width+x] = 0;
-//     }
-//     undoDrawLine(img, inverted_img,line_x, line_y, length, width);
-// }
-
 void draw_lines(std::queue<int> found_p1, std::queue<int> found_p2, int* x_coords, int* y_coords, unsigned char* constructed_img, unsigned char* img, int width){
     // for each pair (p1,p2) in queue
     //   get coord of p1, found_p2
@@ -318,10 +278,11 @@ void draw_lines(std::queue<int> found_p1, std::queue<int> found_p2, int* x_coord
     }
     int size = found_p1.size();
     assert(size == found_p2.size());
-    int p1 = found_p1.front();
-    int p2 = found_p2.front();
+
     for (int i = 0; i < size; i++){
         // find cooridinates of the pin pair
+        int p1 = found_p1.front();
+        int p2 = found_p2.front();
         int p1_x = x_coords[p1];
         int p1_y = y_coords[p1];
         int p2_x = x_coords[p2];
@@ -334,8 +295,6 @@ void draw_lines(std::queue<int> found_p1, std::queue<int> found_p2, int* x_coord
         add_line2Img(constructed_img, img, width, line_x, line_y, line_length);
         found_p1.push(p1);
         found_p2.push(p2);
-        p1 = found_p1.front();
-        p2 = found_p2.front();
         found_p1.pop();
         found_p2.pop();
     }
@@ -445,14 +404,6 @@ int main(int argc, char* argv[]) {
     stbi_write_jpg((file_name+"NP"+std::to_string(numPins) + "w" + std::to_string(cropped_width)+"_pins.jpg").c_str(), cropped_width, cropped_width, gray_channels, img, 100);
     TIMER(prevTime, "finding pins");
 
-    // // test draw lines
-    // int line_x[cropped_width];
-    // int line_y[cropped_width];
-    // int line_length;
-    // find_linePixels(x_coords[8], y_coords[8], x_coords[2], y_coords[2], line_x, line_y, &line_length, cropped_width);
-    // drawLine(img, line_x, line_y, line_length, cropped_width);
-    // stbi_write_jpg((file_name+"NP"+std::to_string(numPins) + "w" + std::to_string(cropped_width)+"_test_lines.jpg").c_str(), cropped_width, cropped_width, gray_channels, img, 100);
-
     size_t currNorm = 0;
     int line_length;
     int line_x[cropped_width];
@@ -485,19 +436,14 @@ int main(int argc, char* argv[]) {
             // find the line starting from pin that has the biggest norm reduction
             for (size_t i = 0; i<numPins; i++) {
                 for (size_t j = 0; j<i; j++) {
-                    // printf("cp1, line_length: %d\n", line_length);
                     find_linePixels(x_coords[i], y_coords[i], x_coords[j], y_coords[j], line_x, line_y, &line_length, cropped_width);
-                    // printf("cp2, line_length: %d\n", line_length);
                     size_t tmp_norm = l2_norm(constructed_img, inverted_img, cropped_size, cropped_width, line_x, line_y, line_length, true);
-                    // printf("i: %lu,j: %lu, tmp_norm: %lu, bestNorm: %lu\n", i, j, tmp_norm, bestNorm);
                     if (tmp_norm < bestNorm) {
                         noRemoval = false;
-                        // printf("tmp_norm < bestNorm\n");
                         bestPin1 = i;
                         bestPin2 = j;
                         bestNorm = tmp_norm;
                     }
-                    // printf("cp3\n");
                 }
             }
             if (bestPin1 == bestPin2) { // no line can make norm any smaller
@@ -508,23 +454,15 @@ int main(int argc, char* argv[]) {
                 // break;
                 continue;
             } 
-            // printf("found pin1: %d, pin2: %d\n", bestPin1, bestPin2);
             // whiten the pixels covered by line
             find_linePixels(x_coords[bestPin1], y_coords[bestPin1], x_coords[bestPin2], y_coords[bestPin2], line_x, line_y, &line_length, cropped_width);
             add_line2Img(constructed_img, img, cropped_width, line_x, line_y, line_length);
             found_p1.push(bestPin1);
             found_p2.push(bestPin2);
-            // if (bestPin1 == 109 && bestPin2 == 20){
-            //     printf("Testing (109, 20) \n");
-            //     for (int index = 0; index < line_length; index++) {
-            //         printf("[%d] (%d, %d) | ", index, line_x[index], line_y[index]);
-            //     }
-            // }
         }
         else { //isAdd == false
             int firstP1 = found_p1.front();
             int firstP2 = found_p2.front();
-            // printf("firstP1: %d, firstP2: %d\n", firstP1, firstP2);
             int p1 = firstP1;
             int p2 = firstP2;
             do {
@@ -532,35 +470,28 @@ int main(int argc, char* argv[]) {
                 found_p2.pop();
                 memcpy( &img, &original_img, sizeof(img));
                 draw_lines(found_p1, found_p2, x_coords, y_coords, constructed_img, img, cropped_width);
-                // find_linePixels(x_coords[p1], y_coords[p1], x_coords[p2], y_coords[p2], line_x, line_y, &line_length, cropped_width);
                 size_t tmp_norm = l2_norm(constructed_img, inverted_img, cropped_size, cropped_width, line_x, line_y, line_length, false);
-                // printf("p1: %d, p2: %d, tmp_norm: %lu, bestNorm: %lu \n", p1, p2, tmp_norm, bestNorm);
                 if (tmp_norm < bestNorm) {
                     noAddition = false;
-                    // remove_lineFromImg(constructed_img, img, inverted_img, cropped_width, line_x, line_y, line_length);
-                    /* redraw image with one line removed */
-                    // memcpy( &img, &original_img, sizeof(img) );
-                    // draw_lines(found_p1, found_p2, x_coords, y_coords, constructed_img, img, cropped_width);
 
                     printf("removing (%d,%d)\n",p1,p2); 
-                    // int test_line_length;
-                    // int test_line_x[cropped_width];
-                    // int test_line_y[cropped_width];
-                    // find_linePixels(x_coords[p1], y_coords[p1], x_coords[p2], y_coords[p2], test_line_x, test_line_y, &test_line_length, cropped_width);
-                    // add_line2Img(test_img, test_img_original, cropped_width, line_x, line_y, line_length);
                     bestNorm = tmp_norm;
                     if (p1 == firstP1 && p2 == firstP2) {
                         firstP1 = found_p1.front();
                         firstP2 = found_p2.front();
                         printf("updating firstP1: %d, firstP2: %d \n", firstP1, firstP2);
                     }
-                }else {
+                }
+                else {
                     found_p1.push(p1);
                     found_p2.push(p2);
                 }
                 p1 = found_p1.front();
                 p2 = found_p2.front();
+                
             } while (p1 != firstP1 || p2 != firstP2);
+            memcpy( &img, &original_img, sizeof(img));
+            draw_lines(found_p1, found_p2, x_coords, y_coords, constructed_img, img, cropped_width);
             isAdd = true;
             noRemoval = true;
             printf("1 pass of removing is done\n");
