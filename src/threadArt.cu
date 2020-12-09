@@ -98,32 +98,34 @@ __device__ __inline__ void find_linePixels_cuda(int pin1x, int pin1y, int pin2x,
     
 }
 
-__device__ __inline__ size_t l2_norm_cuda(unsigned char* constructed_img, unsigned char* inverted_img, int image_size, int width, int* line_x, int* line_y, int line_length, bool isAdd) {
+__device__ __inline__ size_t l2_norm_cuda_add(unsigned char* constructed_img, unsigned char* inverted_img, int image_size, int width, int* line_x, int* line_y, int line_length, bool isAdd) {
     // printf("GPU inline l2_norm launched successfully!\n");
-    return 0;
+    // return 0;
     // FIXME: not enough memory for tmp_img for every thread
-    unsigned char tmp_img[MAX_WIDTH*MAX_WIDTH];
-    printf("GPU inline l2_norm launched successfully!\n");
-    size_t l2_norm = 0;
-    // printf("l2_norm_1 ");
-    for (int i = 0; i<image_size; i++) {
-        printf("%d ",i);
-        tmp_img[i] = constructed_img[i];
-        printf("%d ~~",i);
-    }
-    printf("l2_norm_2 ");
+    // printf("GPU inline l2_norm launched successfully!\n");
+    int l2_norm = 0;
+    // printf("l2_norm_1 ")
+    // for (int i = 0; i<image_size; i++) {
+    //     printf("%d ",i);
+    //     tmp_img[i] = constructed_img[i];
+    //     printf("%d ~~",i);
+    // }
+    // printf("l2_norm_2 ");
     for (int i = 0; i<line_length; i++) {
         int x = line_x[i];
         int y = line_y[i];
-        if (isAdd) tmp_img[y*width+x] = 255;
-        else tmp_img[y*width+x] = 0;
+        l2_norm += (255*255 - 2*255*inverted_img[y*width+x]
+                    - constructed_img[y*width+x]*constructed_img[y*width+x] + 
+                    + 2*constructed_img[y*width+x]*inverted_img[y*width+x]);
     }
-    printf("l2_norm_3 ");
+    // printf("l2_norm_3 ");
+    
     for (int i = 0; i<image_size; i++) {
-        size_t d = tmp_img[i]-inverted_img[i];
+        int d = constructed_img[i]-inverted_img[i];
         l2_norm += d*d;
     }
-    printf("l2_norm_4 ");
+
+    // printf("l2_norm_4 ");
     __syncthreads();
     return l2_norm;
 
@@ -152,14 +154,14 @@ __global__ void find_best_pins_kernel(int* x_coords, int* y_coords, int numPins,
     //     printf("\n");
     // }
     // printf("launching l2 norm\n");
-    tmp_norm = l2_norm_cuda(constructed_img, inverted_img, cropped_size, cropped_width, line_x, line_y, line_length, true);
+    tmp_norm = l2_norm_cuda_add(constructed_img, inverted_img, cropped_size, cropped_width, line_x, line_y, line_length, true);
     // printf("tmp_norm %d\n", (int)tmp_norm);
-    if (tmp_norm < *bestNorm) {
+    if (tmp_norm < *bestNorm && i > j) {
         *bestPin1 = i;
         *bestPin2 = j;
         *bestNorm = tmp_norm;
     }
-    // __syncthreads();
+    __syncthreads();
 }
 
 void find_best_pins(int* x_coords, int* y_coords, int numPins, int cropped_width, 
