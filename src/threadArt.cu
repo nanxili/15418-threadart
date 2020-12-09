@@ -99,18 +99,7 @@ __device__ __inline__ void find_linePixels_cuda(int pin1x, int pin1y, int pin2x,
 }
 
 __device__ __inline__ size_t l2_norm_cuda_add(unsigned char* constructed_img, unsigned char* inverted_img, int image_size, int width, int* line_x, int* line_y, int line_length, bool isAdd) {
-    // printf("GPU inline l2_norm launched successfully!\n");
-    // return 0;
-    // FIXME: not enough memory for tmp_img for every thread
-    // printf("GPU inline l2_norm launched successfully!\n");
     int l2_norm = 0;
-    // printf("l2_norm_1 ")
-    // for (int i = 0; i<image_size; i++) {
-    //     printf("%d ",i);
-    //     tmp_img[i] = constructed_img[i];
-    //     printf("%d ~~",i);
-    // }
-    // printf("l2_norm_2 ");
     for (int i = 0; i<line_length; i++) {
         int x = line_x[i];
         int y = line_y[i];
@@ -138,24 +127,17 @@ __global__ void find_best_pins_kernel(int* x_coords, int* y_coords, int numPins,
     int line_x[MAX_WIDTH];
     int line_y[MAX_WIDTH];
     int line_length;
-    size_t tmp_norm;
+    size_t tmp_norm = 0;
 
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
    
-    // printf("kernel launched [%d, %d] (%d, %d) (%d, %d) \n", i, j, x_coords[i], y_coords[i], x_coords[j], y_coords[j]);
-    // printf("launching find_linePixels\n");
     find_linePixels_cuda(x_coords[i], y_coords[i], x_coords[j], y_coords[j], line_x, line_y, &line_length, cropped_width);
-    // if (i == 0 && j == 0){
-    //     printf("line length %d\n", line_length);
-    //     for (int index = 0; index < cropped_width; index++){
-    //         printf("%d ", line_x[index]);
-    //     }
-    //     printf("\n");
-    // }
-    // printf("launching l2 norm\n");
     tmp_norm = l2_norm_cuda_add(constructed_img, inverted_img, cropped_size, cropped_width, line_x, line_y, line_length, true);
     // printf("tmp_norm %d\n", (int)tmp_norm);
+    // if (i == 49 && j == 15) printf("(49,15) %d\n", (int)tmp_norm);
+
+    // FIXME: critical section here is the error
     if (tmp_norm < *bestNorm && i > j) {
         *bestPin1 = i;
         *bestPin2 = j;
