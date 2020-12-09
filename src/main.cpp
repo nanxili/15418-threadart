@@ -16,6 +16,7 @@
 #include "stb_image/stb_image_resize.h"
 
 void hello_world();
+void find_best_pins(int* x_coords, int* y_coords, int numPins, int cropped_width, int* bestPin1, int* bestPin2, size_t* bestNorm, unsigned char* constructed_img, unsigned char* inverted_img, int cropped_size);
 
 std::clock_t currTime;
 double duration;
@@ -440,6 +441,10 @@ int main(int argc, char* argv[]) {
         int bestPin2 = 0;
         if (isAdd) {
             // find the line starting from pin that has the biggest norm reduction
+            int bestPin1_test = 0;
+            int bestPin2_test = 0;
+            size_t bestNorm_test = currNorm;
+            find_best_pins(x_coords, y_coords, numPins, cropped_width, &bestPin1_test, &bestPin2_test, &bestNorm_test, constructed_img, inverted_img, cropped_size);
             for (size_t i = 0; i<numPins; i++) {
                 for (size_t j = 0; j<i; j++) {
                     find_linePixels(x_coords[i], y_coords[i], x_coords[j], y_coords[j], line_x, line_y, &line_length, cropped_width);
@@ -452,6 +457,15 @@ int main(int argc, char* argv[]) {
                     }
                 }
             }
+            printf("(%d|%d, %d|%d), %d|%d currNorm %d\n", 
+            bestPin1, bestPin1_test, 
+            bestPin2, bestPin2_test, 
+            bestNorm, bestNorm_test, currNorm);
+            assert(bestNorm == bestNorm_test);
+            assert(bestPin1 == bestPin1_test);
+            assert(bestPin2 == bestPin2_test);
+
+
             if (bestPin1 == bestPin2) { // no line can make norm any smaller
                 printf("1 pass of adding is done \n");
                 isAdd = false; // try deleting lines
