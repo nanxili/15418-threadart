@@ -99,21 +99,30 @@ __device__ __inline__ void find_linePixels_cuda(int pin1x, int pin1y, int pin2x,
 }
 
 __device__ __inline__ size_t l2_norm_cuda_add(unsigned char* constructed_img, unsigned char* inverted_img, int image_size, int width, int* line_x, int* line_y, int line_length, bool isAdd) {
-    int l2_norm = 0;
+    size_t l2_norm = 0;
 
-    for (int i = 0; i<line_length; i++) {
-        int x = line_x[i];
-        int y = line_y[i];
-        l2_norm += (255*255 - 2*255*inverted_img[y*width+x]
-                    - constructed_img[y*width+x]*constructed_img[y*width+x] + 
-                    + 2*constructed_img[y*width+x]*inverted_img[y*width+x]);
-    }
-    
     for (int i = 0; i<image_size; i++) {
         int d = constructed_img[i]-inverted_img[i];
         l2_norm += d*d;
     }
-
+    if (isAdd) {
+        for (int i = 0; i<line_length; i++) {
+            int x = line_x[i];
+            int y = line_y[i];
+            l2_norm += (255*255 - 2*255*inverted_img[y*width+x]
+                        - constructed_img[y*width+x]*constructed_img[y*width+x] + 
+                        + 2*constructed_img[y*width+x]*inverted_img[y*width+x]);
+        }
+    }
+    else {
+        for (int i = 0; i<line_length; i++) {
+            int x = line_x[i];
+            int y = line_y[i];
+            l2_norm +=  - constructed_img[y*width+x]*constructed_img[y*width+x] + 
+                        + 2*constructed_img[y*width+x]*inverted_img[y*width+x];
+        }
+    }
+    
     return l2_norm;
 }
 
@@ -216,6 +225,7 @@ void find_best_pins(int* x_coords, int* y_coords, int numPins, int cropped_width
     for (int i = 0; i < numPins; i++){
         for (int j = 0; j < i; j++){
             size_t tmp_norm = norm[i*numPins+j];
+            if (tmp_norm == 1010762398) printf("!!!1010762398 (%d, %d) ", i, j);
             // printf("(%d|%d, %d|%d) %u \n", i, pin1[i*numPins+j], j, pin2[i*numPins+j], tmp_norm);
             // if (i == 63 && j == 45) printf("!!(63,45) %u", tmp_norm);
             if (tmp_norm < *bestNorm) {

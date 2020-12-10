@@ -259,6 +259,37 @@ size_t l2_norm(unsigned char* constructed_img, unsigned char* inverted_img, int 
         size_t d = tmp_img[i]-inverted_img[i];
         l2_norm += d*d;
     }
+    size_t l2_norm_test = 0;
+    if (isAdd){
+        for (int i = 0; i<image_size; i++) {
+            int d = constructed_img[i]-inverted_img[i];
+            l2_norm_test += d*d;
+        }
+
+        for (int i = 0; i<line_length; i++) {
+            int x = line_x[i];
+            int y = line_y[i];
+            l2_norm_test += (255*255 - 2*255*inverted_img[y*width+x]
+                        - constructed_img[y*width+x]*constructed_img[y*width+x] + 
+                        + 2*constructed_img[y*width+x]*inverted_img[y*width+x]);
+        }
+    }
+    else {
+        for (int i = 0; i<image_size; i++) {
+            int d = constructed_img[i]-inverted_img[i];
+            l2_norm_test += d*d;
+        }
+
+        for (int i = 0; i<line_length; i++) {
+            int x = line_x[i];
+            int y = line_y[i];
+            l2_norm_test += 0 - constructed_img[y*width+x]*constructed_img[y*width+x] + 
+                        + 2*constructed_img[y*width+x]*inverted_img[y*width+x];
+        }
+    }
+    // printf("%d|%d\n", l2_norm, l2_norm_test);
+    assert(l2_norm == l2_norm_test);
+
     return l2_norm;
 }
 
@@ -433,45 +464,29 @@ int main(int argc, char* argv[]) {
     unsigned char* test_img_original = (unsigned char*)malloc(cropped_size);
     memcpy(test_img_original, constructed_img, sizeof(test_img));
     size_t bestNorm = currNorm;
+    size_t new_bestNorm = currNorm;
     bool noAddition = false;
     bool noRemoval = false;
 
     while (true) {
-        int bestPin1 = 0;
-        int bestPin2 = 0;
         if (isAdd) {
             // find the line starting from pin that has the biggest norm reduction
-            int bestPin1_test = 0;
-            int bestPin2_test = 0;
-            size_t bestNorm_test = currNorm;
-            find_best_pins(x_coords, y_coords, numPins, cropped_width, &bestPin1_test, &bestPin2_test, &bestNorm_test, constructed_img, inverted_img, cropped_size);
-            for (size_t i = 0; i<numPins; i++) {
-                for (size_t j = 0; j<i; j++) {
-                    find_linePixels(x_coords[i], y_coords[i], x_coords[j], y_coords[j], line_x, line_y, &line_length, cropped_width);
-                    size_t tmp_norm = l2_norm(constructed_img, inverted_img, cropped_size, cropped_width, line_x, line_y, line_length, true);
-                    if (tmp_norm < bestNorm) {
-                        noRemoval = false;
-                        bestPin1 = i;
-                        bestPin2 = j;
-                        bestNorm = tmp_norm;
-                    }
-                }
+            int bestPin1 = 0;
+            int bestPin2 = 0;
+
+            find_best_pins(x_coords, y_coords, numPins, cropped_width, &bestPin1, &bestPin2, &new_bestNorm, constructed_img, inverted_img, cropped_size);
+
+            if (new_bestNorm < bestNorm) {
+                noRemoval = false;
+                bestNorm = new_bestNorm;
             }
-            printf("(%d|%d, %d|%d), %d|%d currNorm %d\n", 
-            bestPin1, bestPin1_test, 
-            bestPin2, bestPin2_test, 
-            bestNorm, bestNorm_test, currNorm);
-            assert(bestNorm == bestNorm_test);
-            assert(bestPin1 == bestPin1_test);
-            assert(bestPin2 == bestPin2_test);
-
-
+            new_bestNorm = bestNorm;
+            printf("adding (%d, %d)\n", bestPin1, bestPin2);
+            
             if (bestPin1 == bestPin2) { // no line can make norm any smaller
                 printf("1 pass of adding is done \n");
                 isAdd = false; // try deleting lines
-                // noRemoval = true; // remove this
                 noAddition = true;
-                // break;
                 continue;
             } 
             // whiten the pixels covered by line
@@ -481,6 +496,7 @@ int main(int argc, char* argv[]) {
             found_p2.push(bestPin2);
         }
         else { //isAdd == false
+            printf("inside else\n");
             int firstP1 = found_p1.front();
             int firstP2 = found_p2.front();
             int p1 = firstP1;
