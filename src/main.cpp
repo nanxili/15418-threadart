@@ -79,8 +79,8 @@ void gray_scale_image(unsigned char *orig_img, int img_size, unsigned char *gray
 }
 
 void contrast_image(unsigned char *img, int img_size, int channels) {
-    // int contrast = -200;
-    int contrast = 0;
+    int contrast = 250;
+    // int contrast = 0;
     float factor = (259.0 * (contrast + 255.0)) / (255.0 * (259.0 - contrast));
     for(unsigned char *pg = img; pg != img + img_size; pg += channels) {
         uint8_t p = (uint8_t)*pg;
