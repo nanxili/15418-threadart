@@ -100,6 +100,7 @@ __device__ __inline__ void find_linePixels_cuda(int pin1x, int pin1y, int pin2x,
 
 __device__ __inline__ size_t l2_norm_cuda_add(unsigned char* constructed_img, unsigned char* inverted_img, int image_size, int width, int* line_x, int* line_y, int line_length, bool isAdd) {
     int l2_norm = 0;
+
     for (int i = 0; i<line_length; i++) {
         int x = line_x[i];
         int y = line_y[i];
@@ -107,17 +108,13 @@ __device__ __inline__ size_t l2_norm_cuda_add(unsigned char* constructed_img, un
                     - constructed_img[y*width+x]*constructed_img[y*width+x] + 
                     + 2*constructed_img[y*width+x]*inverted_img[y*width+x]);
     }
-    // printf("l2_norm_3 ");
     
     for (int i = 0; i<image_size; i++) {
         int d = constructed_img[i]-inverted_img[i];
         l2_norm += d*d;
     }
 
-    // printf("l2_norm_4 ");
-    __syncthreads();
     return l2_norm;
-
 }
 
 __global__ void find_best_pins_kernel(int* x_coords, int* y_coords, int numPins, int cropped_width, 
@@ -132,17 +129,32 @@ __global__ void find_best_pins_kernel(int* x_coords, int* y_coords, int numPins,
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
    
+    // printf("kernel launched [%d, %d] (%d, %d) (%d, %d) \n", i, j, x_coords[i], y_coords[i], x_coords[j], y_coords[j]);
+    // printf("launching find_linePixels\n");
     find_linePixels_cuda(x_coords[i], y_coords[i], x_coords[j], y_coords[j], line_x, line_y, &line_length, cropped_width);
+    // if (i == 0 && j == 0){
+    //     printf("line length %d\n", line_length);
+    //     for (int index = 0; index < cropped_width; index++){
+    //         printf("%d ", line_x[index]);
+    //     }
+    //     printf("\n");
+    // }
+    // printf("launching l2 norm\n");
     tmp_norm = l2_norm_cuda_add(constructed_img, inverted_img, cropped_size, cropped_width, line_x, line_y, line_length, true);
     // printf("tmp_norm %d\n", (int)tmp_norm);
     // if (i == 49 && j == 15) printf("(49,15) %d\n", (int)tmp_norm);
 
-    // FIXME: critical section here is the error
-    if (tmp_norm < *bestNorm && i > j) {
-        *bestPin1 = i;
-        *bestPin2 = j;
-        *bestNorm = tmp_norm;
-    }
+    // FIXME: critical section here is
+    // if (tmp_norm < *bestNorm && i > j) {
+    //     *bestPin1 = i;
+    //     *bestPin2 = j;
+    //     *bestNorm = tmp_norm;
+    // }
+    bestPin1[i*numPins + j] = i;
+    bestPin2[i*numPins + j] = j;
+    bestNorm[i*numPins + j] = tmp_norm;
+    // if (i == 63 && j == 45) printf("!!(63,45) %u", tmp_norm);
+    
     __syncthreads();
 }
 
@@ -166,18 +178,18 @@ void find_best_pins(int* x_coords, int* y_coords, int numPins, int cropped_width
     cudaMemcpy(device_constructed_img, constructed_img, img_size, cudaMemcpyHostToDevice);
     cudaMemcpy(device_inverted_img, inverted_img, img_size, cudaMemcpyHostToDevice);
     
-    int pin_size = sizeof(int);
+    int pin_size = sizeof(int)*numPins*numPins;
     int* device_bestPin1;
     int* device_bestPin2;
     cudaMalloc(&device_bestPin1, pin_size);
     cudaMalloc(&device_bestPin2, pin_size);
-    cudaMemcpy(device_bestPin1, bestPin1, pin_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(device_bestPin2, bestPin2, pin_size, cudaMemcpyHostToDevice);
+    // cudaMemcpy(device_bestPin1, bestPin1, pin_size, cudaMemcpyHostToDevice);
+    // cudaMemcpy(device_bestPin2, bestPin2, pin_size, cudaMemcpyHostToDevice);
 
-    int norm_size = sizeof(size_t);
+    int norm_size = sizeof(size_t)*numPins*numPins;
     size_t* device_bestNorm;
     cudaMalloc(&device_bestNorm, norm_size);
-    cudaMemcpy(device_bestNorm, bestNorm, norm_size, cudaMemcpyHostToDevice);
+    // cudaMemcpy(device_bestNorm, bestNorm, norm_size, cudaMemcpyHostToDevice);
 
     dim3 blockDim(16,16);
     dim3 gridDim((numPins + blockDim.x - 1) / blockDim.x,
@@ -191,14 +203,35 @@ void find_best_pins(int* x_coords, int* y_coords, int numPins, int cropped_width
     if (errCode != cudaSuccess) {
         fprintf(stderr, "WARNING: A CUDA error occured: code=%d, %s\n", errCode, cudaGetErrorString(errCode));
     }
-    cudaDeviceSynchronize();
+    cudaDeviceSynchronize(); 
 
-    cudaMemcpy(bestPin1, device_bestPin1, pin_size, cudaMemcpyDeviceToHost);
-    cudaMemcpy(bestPin2, device_bestPin2, pin_size, cudaMemcpyDeviceToHost);
-    cudaMemcpy(bestNorm, device_bestNorm, norm_size, cudaMemcpyDeviceToHost);
+    int* pin1 = (int*)malloc(sizeof(int)*numPins*numPins);
+    int* pin2 = (int*)malloc(sizeof(int)*numPins*numPins);
+    size_t* norm = (size_t*)malloc(sizeof(size_t)*numPins*numPins);
+    
+    cudaMemcpy(pin1, device_bestPin1, pin_size, cudaMemcpyDeviceToHost);
+    cudaMemcpy(pin2, device_bestPin2, pin_size, cudaMemcpyDeviceToHost);
+    cudaMemcpy(norm, device_bestNorm, norm_size, cudaMemcpyDeviceToHost);
+
+    for (int i = 0; i < numPins; i++){
+        for (int j = 0; j < i; j++){
+            size_t tmp_norm = norm[i*numPins+j];
+            // printf("(%d|%d, %d|%d) %u \n", i, pin1[i*numPins+j], j, pin2[i*numPins+j], tmp_norm);
+            // if (i == 63 && j == 45) printf("!!(63,45) %u", tmp_norm);
+            if (tmp_norm < *bestNorm) {
+                // noRemoval = false;
+                *bestPin1 = i;
+                *bestPin2 = j;
+                *bestNorm = tmp_norm;
+            }
+        }
+    }
 
     // printf("(%d, %d) %d\n", *bestPin1, *bestPin2, *bestNorm);
 
+    free(pin1);
+    free(pin2);
+    free(norm);
     cudaFree(device_x_coords);
     cudaFree(device_y_coords);
     cudaFree(device_constructed_img);
