@@ -15,7 +15,6 @@
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb_image/stb_image_resize.h"
 
-void hello_world();
 void find_best_pins(int* x_coords, int* y_coords, int numPins, int cropped_width, int* bestPin1, int* bestPin2, size_t* bestNorm, unsigned char* constructed_img, unsigned char* inverted_img, int cropped_size);
 
 std::clock_t currTime;
@@ -259,36 +258,36 @@ size_t l2_norm(unsigned char* constructed_img, unsigned char* inverted_img, int 
         size_t d = tmp_img[i]-inverted_img[i];
         l2_norm += d*d;
     }
-    size_t l2_norm_test = 0;
-    if (isAdd){
-        for (int i = 0; i<image_size; i++) {
-            int d = constructed_img[i]-inverted_img[i];
-            l2_norm_test += d*d;
-        }
+    // size_t l2_norm_test = 0;
+    // if (isAdd){
+    //     for (int i = 0; i<image_size; i++) {
+    //         int d = constructed_img[i]-inverted_img[i];
+    //         l2_norm_test += d*d;
+    //     }
 
-        for (int i = 0; i<line_length; i++) {
-            int x = line_x[i];
-            int y = line_y[i];
-            l2_norm_test += (255*255 - 2*255*inverted_img[y*width+x]
-                        - constructed_img[y*width+x]*constructed_img[y*width+x] + 
-                        + 2*constructed_img[y*width+x]*inverted_img[y*width+x]);
-        }
-    }
-    else {
-        for (int i = 0; i<image_size; i++) {
-            int d = constructed_img[i]-inverted_img[i];
-            l2_norm_test += d*d;
-        }
+    //     for (int i = 0; i<line_length; i++) {
+    //         int x = line_x[i];
+    //         int y = line_y[i];
+    //         l2_norm_test += (255*255 - 2*255*inverted_img[y*width+x]
+    //                     - constructed_img[y*width+x]*constructed_img[y*width+x] + 
+    //                     + 2*constructed_img[y*width+x]*inverted_img[y*width+x]);
+    //     }
+    // }
+    // else {
+    //     for (int i = 0; i<image_size; i++) {
+    //         int d = constructed_img[i]-inverted_img[i];
+    //         l2_norm_test += d*d;
+    //     }
 
-        for (int i = 0; i<line_length; i++) {
-            int x = line_x[i];
-            int y = line_y[i];
-            l2_norm_test += 0 - constructed_img[y*width+x]*constructed_img[y*width+x] + 
-                        + 2*constructed_img[y*width+x]*inverted_img[y*width+x];
-        }
-    }
-    // printf("%d|%d\n", l2_norm, l2_norm_test);
-    assert(l2_norm == l2_norm_test);
+    //     for (int i = 0; i<line_length; i++) {
+    //         int x = line_x[i];
+    //         int y = line_y[i];
+    //         l2_norm_test += 0 - constructed_img[y*width+x]*constructed_img[y*width+x] + 
+    //                     + 2*constructed_img[y*width+x]*inverted_img[y*width+x];
+    //     }
+    // }
+    // // printf("%d|%d\n", l2_norm, l2_norm_test);
+    // assert(l2_norm == l2_norm_test);
 
     return l2_norm;
 }
@@ -459,8 +458,6 @@ int main(int argc, char* argv[]) {
         test_img[i] = 0;
     }
 
-    hello_world();
-
     unsigned char* test_img_original = (unsigned char*)malloc(cropped_size);
     memcpy(test_img_original, constructed_img, sizeof(test_img));
     size_t bestNorm = currNorm;
@@ -481,7 +478,6 @@ int main(int argc, char* argv[]) {
                 bestNorm = new_bestNorm;
             }
             new_bestNorm = bestNorm;
-            printf("adding (%d, %d)\n", bestPin1, bestPin2);
             
             if (bestPin1 == bestPin2) { // no line can make norm any smaller
                 printf("1 pass of adding is done \n");
@@ -489,11 +485,14 @@ int main(int argc, char* argv[]) {
                 noAddition = true;
                 continue;
             } 
-            // whiten the pixels covered by line
-            find_linePixels(x_coords[bestPin1], y_coords[bestPin1], x_coords[bestPin2], y_coords[bestPin2], line_x, line_y, &line_length, cropped_width);
-            add_line2Img(constructed_img, img, cropped_width, line_x, line_y, line_length);
-            found_p1.push(bestPin1);
-            found_p2.push(bestPin2);
+            else {
+                printf("adding (%d, %d)\n", bestPin1, bestPin2);
+                find_linePixels(x_coords[bestPin1], y_coords[bestPin1], x_coords[bestPin2], y_coords[bestPin2], line_x, line_y, &line_length, cropped_width);
+                add_line2Img(constructed_img, img, cropped_width, line_x, line_y, line_length);
+                found_p1.push(bestPin1);
+                found_p2.push(bestPin2);
+            }
+            
         }
         else { //isAdd == false
             printf("inside else\n");

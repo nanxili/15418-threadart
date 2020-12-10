@@ -127,7 +127,7 @@ __device__ __inline__ size_t l2_norm_cuda_add(unsigned char* constructed_img, un
 }
 
 __global__ void find_best_pins_kernel(int* x_coords, int* y_coords, int numPins, int cropped_width, 
-    int* bestPin1, int* bestPin2, size_t* bestNorm,
+    size_t* bestNorm,
     unsigned char* constructed_img, unsigned char* inverted_img, int cropped_size){
 
     int line_x[MAX_WIDTH];
@@ -159,8 +159,6 @@ __global__ void find_best_pins_kernel(int* x_coords, int* y_coords, int numPins,
     //     *bestPin2 = j;
     //     *bestNorm = tmp_norm;
     // }
-    bestPin1[i*numPins + j] = i;
-    bestPin2[i*numPins + j] = j;
     bestNorm[i*numPins + j] = tmp_norm;
     // if (i == 63 && j == 45) printf("!!(63,45) %u", tmp_norm);
     
@@ -205,7 +203,7 @@ void find_best_pins(int* x_coords, int* y_coords, int numPins, int cropped_width
                  (numPins + blockDim.y - 1) / blockDim.y);
     size_t memorysize = 2 * MAX_WIDTH * sizeof(int);
     find_best_pins_kernel<<<gridDim, blockDim, memorysize>>>(device_x_coords, device_y_coords, numPins, cropped_width,
-        device_bestPin1, device_bestPin2, device_bestNorm,
+        device_bestNorm,
         device_constructed_img, device_inverted_img, cropped_size);
     
     cudaError_t errCode = cudaPeekAtLastError();
@@ -214,12 +212,8 @@ void find_best_pins(int* x_coords, int* y_coords, int numPins, int cropped_width
     }
     cudaDeviceSynchronize(); 
 
-    int* pin1 = (int*)malloc(sizeof(int)*numPins*numPins);
-    int* pin2 = (int*)malloc(sizeof(int)*numPins*numPins);
     size_t* norm = (size_t*)malloc(sizeof(size_t)*numPins*numPins);
     
-    cudaMemcpy(pin1, device_bestPin1, pin_size, cudaMemcpyDeviceToHost);
-    cudaMemcpy(pin2, device_bestPin2, pin_size, cudaMemcpyDeviceToHost);
     cudaMemcpy(norm, device_bestNorm, norm_size, cudaMemcpyDeviceToHost);
 
     for (int i = 0; i < numPins; i++){
@@ -238,9 +232,6 @@ void find_best_pins(int* x_coords, int* y_coords, int numPins, int cropped_width
     }
 
     // printf("(%d, %d) %d\n", *bestPin1, *bestPin2, *bestNorm);
-
-    free(pin1);
-    free(pin2);
     free(norm);
     cudaFree(device_x_coords);
     cudaFree(device_y_coords);
