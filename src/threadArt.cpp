@@ -535,7 +535,6 @@ int main(int argc, char* argv[]) {
             memcpy(&img, &original_img, sizeof(img));
             assert(line_count != 0);
             draw_all_lines(found_pin1, found_pin2, line_count, x_coords, y_coords, constructed_img, img, cropped_width);
-
             isAdd = true;
             noRemoval = true;
             printf("1 pass of removing is done\n");
