@@ -4,17 +4,7 @@
 #include <cuda_runtime.h>
 #include <driver_functions.h>
 
-
-__global__ void kernel() {
-    printf("Hello world from GPU!\n");
-}
-void hello_world() {
-    printf("Hello world!\n");
-    kernel<<<1,1>>>();
-}
-
-#define MAX_WIDTH 1024
-
+#define MAX_WIDTH 2048
 
 __device__ __inline__ void find_linePixels_cuda(int pin1x, int pin1y, int pin2x, int pin2y, int* line_x, int* line_y, int* length, int width) {
     // printf("GPU inline find_linePixels launched successfully!\n");
@@ -109,7 +99,11 @@ __device__ __inline__ size_t l2_norm_cuda_add(unsigned char* constructed_img, un
         for (int i = 0; i<line_length; i++) {
             int x = line_x[i];
             int y = line_y[i];
-            l2_norm += (255*255 - 2*255*inverted_img[y*width+x]
+            int new_pixel;
+            if (constructed_img[y*width+x] == 0) new_pixel = 200;
+            else if (constructed_img[y*width+x] == 255) new_pixel = 255;
+            else new_pixel = constructed_img[y*width+x] + 5;
+            l2_norm += (new_pixel*new_pixel - 2*new_pixel*inverted_img[y*width+x]
                         - constructed_img[y*width+x]*constructed_img[y*width+x] + 
                         + 2*constructed_img[y*width+x]*inverted_img[y*width+x]);
         }
