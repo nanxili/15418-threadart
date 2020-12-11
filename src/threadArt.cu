@@ -227,6 +227,7 @@ __global__ void remove_lines_kernel(
     size_t* new_norms){
     
     int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= line_count) return;
     int p1 = found_pin1[i];
     int p2 = found_pin2[i];
 
@@ -245,7 +246,7 @@ __global__ void remove_lines_kernel(
     }
 }
 
-void remove_lines(
+int remove_lines(
     int* x_coords, int* y_coords, int numPins, int cropped_width, size_t* bestNorm,
     int* found_pin1, int* found_pin2, int line_count,
     unsigned char* constructed_img, unsigned char* inverted_img, unsigned char* img, int cropped_size){
@@ -287,9 +288,13 @@ void remove_lines(
 
     size_t new_bestNorm = 0;
     size_t local_bestNorm = *bestNorm;
+    int remove_line_count = 0;
+    bool removed_line = true;
 
-    while (local_bestNorm != new_bestNorm){
+    while (removed_line){
+        removed_line = false;
         if (new_bestNorm != 0) local_bestNorm = new_bestNorm;
+        new_bestNorm = 0;
         remove_lines_kernel<<<gridDim, blockDim>>>(device_x_coords, device_y_coords, numPins, cropped_width, local_bestNorm,
         device_found_pin1, device_found_pin2, line_count,
         device_constructed_img, device_inverted_img, cropped_size,
@@ -303,11 +308,13 @@ void remove_lines(
 
         cudaMemcpy(new_norms, device_new_norms, new_norms_size, cudaMemcpyDeviceToHost);
         for (int i = 0; i < line_count; i++){
-            if (new_norms[i] != 0 && ~(found_pin1[i] == 0 && found_pin2[i] == 0)){
+            if (new_norms[i] != 0){
                 new_bestNorm = new_norms[i];
                 printf("removing (%d, %d)\n", found_pin1[i], found_pin2[i]);
                 found_pin1[i] = 0;
                 found_pin2[i] = 0;
+                remove_line_count ++;
+                removed_line = true;
                 break;
             }
         }
@@ -316,7 +323,7 @@ void remove_lines(
         cudaMemcpy(device_found_pin2, found_pin2, lines_size, cudaMemcpyHostToDevice);
         cudaMemcpy(device_constructed_img, constructed_img, img_size, cudaMemcpyHostToDevice);
     }
-    *bestNorm = new_bestNorm;
+    *bestNorm = local_bestNorm;
 
     cudaFree(device_x_coords);
     cudaFree(device_y_coords);
@@ -326,7 +333,7 @@ void remove_lines(
     cudaFree(device_found_pin2);
     cudaFree(device_new_norms);
 
-    return;
+    return remove_line_count;
 }
 
 
