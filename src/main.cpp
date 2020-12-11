@@ -16,6 +16,10 @@
 #include "stb_image/stb_image_resize.h"
 
 void find_best_pins(int* x_coords, int* y_coords, int numPins, int cropped_width, int* bestPin1, int* bestPin2, size_t* bestNorm, unsigned char* constructed_img, unsigned char* inverted_img, int cropped_size);
+void remove_lines(
+    int* x_coords, int* y_coords, int numPins, int cropped_width, size_t* bestNorm,
+    int* found_pin1, int* found_pin2, int line_count,
+    unsigned char* constructed_img, unsigned char* inverted_img, unsigned char* img, int cropped_size);
 
 std::clock_t currTime;
 double duration;
@@ -477,55 +481,78 @@ int main(int argc, char* argv[]) {
                 found_pin1[line_count] = bestPin1;
                 found_pin2[line_count] = bestPin2;
                 line_count ++;
-                assert(line_count< numPins*numPins);
+                assert(line_count < numPins*numPins);
             }
             
         }
         else { //isAdd == false
-            printf("inside else\n");
+            new_bestNorm = bestNorm;
+            remove_lines(
+                x_coords, y_coords, numPins, cropped_width, &new_bestNorm,
+                found_pin1, found_pin2, line_count,
+                constructed_img, inverted_img, img, cropped_size);
+            if (new_bestNorm < bestNorm) {
+                noAddition = false;
+                bestNorm = new_bestNorm;
+            }
+
+            // go through all lines to remove the ones that will reduce the norm
+            // while (line_count_tmp != line_count){
+            //     if (line_count_tmp != 0) {
+            //         line_count = line_count_tmp;
+            //         line_count_tmp = 0;
+            //     }
+            //     for (int i = 0; i < line_count; i++){
+            //         int p1 = found_pin1[i];
+            //         int p2 = found_pin2[i];
+            //         found_pin1[i] = 0;
+            //         found_pin2[i] = 0;
+            //         memcpy(&img, &original_img, sizeof(img));
+            //         draw_all_lines(found_pin1, found_pin2, line_count, x_coords, y_coords, constructed_img, img, cropped_width);
+            //         size_t tmp_norm = l2_norm(constructed_img, inverted_img, cropped_size, cropped_width, line_x, line_y, line_length, false);
+            //         if (tmp_norm < bestNorm) {
+            //             noAddition = false;
+            //             printf("removing (%d,%d)\n",p1,p2); 
+            //             bestNorm = tmp_norm;
+            //         }
+            //         else {
+            //             // restore in array for next iteration
+            //             found_pin1[i] = p1;
+            //             found_pin2[i] = p2;
+            //             // add to tmp
+            //             found_pin1_tmp[line_count_tmp] = p1;
+            //             found_pin2_tmp[line_count_tmp] = p2;
+            //             line_count_tmp ++;
+            //         }
+            //     }
+            //     // copy from tmp array to array
+            //     for (int i = 0 ; i < line_count_tmp; i ++){
+            //         found_pin1[i] = found_pin1_tmp[i];
+            //         found_pin2[i] = found_pin2_tmp[i];
+            //     }
+            // }
+            memcpy(&img, &original_img, sizeof(img));
+            assert(line_count != 0);
             int line_count_tmp = 0;
             int found_pin1_tmp[numPins*numPins];
             int found_pin2_tmp[numPins*numPins];
 
-            // go through all lines to remove the ones that will reduce the norm
-            while (line_count_tmp != line_count){
-                if (line_count_tmp != 0) {
-                    line_count = line_count_tmp;
-                    line_count_tmp = 0;
+            for (int i = 0; i < line_count; i++){
+                int p1 = found_pin1[i];
+                int p2 = found_pin2[i];
+                // restore in array for next iteration
+                if (!(p1 == 0 && p2 == 0)){
+                    found_pin1_tmp[line_count_tmp] = p1;
+                    found_pin2_tmp[line_count_tmp] = p2;
+                    line_count_tmp++;
                 }
-                for (int i = 0; i < line_count; i++){
-                    int p1 = found_pin1[i];
-                    int p2 = found_pin2[i];
-                    found_pin1[i] = 0;
-                    found_pin2[i] = 0;
-                    memcpy(&img, &original_img, sizeof(img));
-                    draw_all_lines(found_pin1, found_pin2, line_count, x_coords, y_coords, constructed_img, img, cropped_width);
-                    size_t tmp_norm = l2_norm(constructed_img, inverted_img, cropped_size, cropped_width, line_x, line_y, line_length, false);
-                    // printf("checking if to remove (%d,%d)\n",p1,p2); 
-                    if (tmp_norm < bestNorm) {
-                        noAddition = false;
-                        printf("removing (%d,%d)\n",p1,p2); 
-                        bestNorm = tmp_norm;
-                    }
-                    else {
-                        // restore in array for next iteration
-                        found_pin1[i] = p1;
-                        found_pin2[i] = p2;
-                        // add to tmp
-                        found_pin1_tmp[line_count_tmp] = p1;
-                        found_pin2_tmp[line_count_tmp] = p2;
-                        line_count_tmp ++;
-                    }
-                }
-                // copy from tmp array to array
-                for (int i = 0 ; i < line_count_tmp; i ++){
-                    found_pin1[i] = found_pin1_tmp[i];
-                    found_pin2[i] = found_pin2_tmp[i];
-                }
-                printf("done with one continuous removal pass\n");
             }
-            memcpy(&img, &original_img, sizeof(img));
-            assert(line_count != 0);
+            // copy from tmp array to array
+            for (int i = 0 ; i < line_count_tmp; i ++){
+                found_pin1[i] = found_pin1_tmp[i];
+                found_pin2[i] = found_pin2_tmp[i];
+            }
+
             draw_all_lines(found_pin1, found_pin2, line_count, x_coords, y_coords, constructed_img, img, cropped_width);
 
             isAdd = true;
