@@ -542,10 +542,10 @@ int main(int argc, char* argv[]) {
         if (noAddition && noRemoval) break;
         currNorm = bestNorm;
     }
-    stbi_write_jpg((file_name+"NP"+std::to_string(numPins) + "w" + std::to_string(cropped_width) + "c" + std::to_string(contrast)+ "_lines.jpg").c_str(), cropped_width, cropped_width, gray_channels, img, 100);
+    stbi_write_jpg((file_name+"NP"+std::to_string(numPins) + "w" + std::to_string(cropped_width) + "c" + std::to_string(contrast)+ "_seq_lines.jpg").c_str(), cropped_width, cropped_width, gray_channels, img, 100);
     unsigned char* inverted_constructed_img = (unsigned char*)malloc(cropped_size);
     invert_image(constructed_img, inverted_constructed_img, cropped_size, gray_channels);
-    stbi_write_jpg((file_name+"NP"+std::to_string(numPins) + "w" + std::to_string(cropped_width) + "c" + std::to_string(contrast)+"_justlines.jpg").c_str(), cropped_width, cropped_width, gray_channels, inverted_constructed_img, 100);
+    stbi_write_jpg((file_name+"NP"+std::to_string(numPins) + "w" + std::to_string(cropped_width) + "c" + std::to_string(contrast)+"_seq_justlines.jpg").c_str(), cropped_width, cropped_width, gray_channels, inverted_constructed_img, 100);
     TIMER(prevTime, "finding edges")
 
     free(constructed_img);
