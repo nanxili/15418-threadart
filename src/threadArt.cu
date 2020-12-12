@@ -314,7 +314,7 @@ unsigned char* constructed_img, unsigned char* inverted_img, unsigned char* img,
         for (int i = 0; i < line_count; i++){
             if (new_norms[i] != 0){
                 new_bestNorm = new_norms[i];
-                printf("removing (%d, %d)\n", found_pin1[i], found_pin2[i]);
+                // printf("removing (%d, %d)\n", found_pin1[i], found_pin2[i]);
                 found_pin1[i] = 0;
                 found_pin2[i] = 0;
                 remove_line_count ++;
