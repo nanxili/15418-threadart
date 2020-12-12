@@ -262,7 +262,6 @@ size_t l2_norm(unsigned char* constructed_img, unsigned char* inverted_img, int 
         }
 
         else {
-            // assert (tmp_img[y*width+x] != 0);
             if (tmp_img[y*width+x] == 0) tmp_img[y*width+x] = 0;
             else if (tmp_img[y*width+x] == 100) tmp_img[y*width+x] = 0;
             else tmp_img[y*width+x] -= 5;
@@ -276,7 +275,6 @@ size_t l2_norm(unsigned char* constructed_img, unsigned char* inverted_img, int 
 
     return l2_norm;
 }
-
 void add_line2Img(unsigned char* constructed_img, unsigned char* img, int width, int* line_x, int* line_y, int length) {
     for (size_t i = 0; i<length; i++) {
         int x = line_x[i];
@@ -329,7 +327,7 @@ int main(int argc, char* argv[]) {
     int opt;
     int out_width = 512;
     int numPins = 64;
-    int contrast = 0;
+    int contrast = -50;
     std::string file_name;
     static struct option long_options[] = {
         {"help", 0, 0,  'h'},
@@ -475,13 +473,19 @@ int main(int argc, char* argv[]) {
                 continue;
             } 
             else {
+                if (line_count >= numPins*numPins-1) { // too many lines
+                    printf("1 pass of adding is done \n");
+                    isAdd = false; // try deleting lines
+                    noAddition = true;
+                    continue;
+                } 
                 printf("adding (%d, %d)\n", bestPin1, bestPin2);
                 find_linePixels(x_coords[bestPin1], y_coords[bestPin1], x_coords[bestPin2], y_coords[bestPin2], line_x, line_y, &line_length, cropped_width);
                 add_line2Img(constructed_img, img, cropped_width, line_x, line_y, line_length);
                 found_pin1[line_count] = bestPin1;
                 found_pin2[line_count] = bestPin2;
                 line_count ++;
-                assert(line_count < numPins*numPins);
+                assert(line_count <= numPins*numPins);
             }
             
         }
