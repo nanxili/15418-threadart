@@ -83,6 +83,9 @@ void gray_scale_image(unsigned char *orig_img, int img_size, unsigned char *gray
 }
 
 void contrast_image(unsigned char *img, int img_size, int channels, int contrast) {
+    // int contrast = 250;
+    // int contrast = 0;
+    // int contrast = -100;
     float factor = (259.0 * (contrast + 255.0)) / (255.0 * (259.0 - contrast));
     for(unsigned char *pg = img; pg != img + img_size; pg += channels) {
         uint8_t p = (uint8_t)*pg;
@@ -259,6 +262,7 @@ size_t l2_norm(unsigned char* constructed_img, unsigned char* inverted_img, int 
         }
 
         else {
+            // assert (tmp_img[y*width+x] != 0);
             if (tmp_img[y*width+x] == 0) tmp_img[y*width+x] = 0;
             else if (tmp_img[y*width+x] == 100) tmp_img[y*width+x] = 0;
             else tmp_img[y*width+x] -= 5;
@@ -283,7 +287,6 @@ void add_line2Img(unsigned char* constructed_img, unsigned char* img, int width,
             constructed_img[y*width+x] = 100;
         else 
             constructed_img[y*width+x] += 5;
-        constructed_img[y*width+x] = 255;
         
     }
     drawLine(img, line_x, line_y, length, width);

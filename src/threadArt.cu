@@ -230,7 +230,11 @@ __global__ void remove_lines_kernel(
     if (i >= line_count) return;
     int p1 = found_pin1[i];
     int p2 = found_pin2[i];
-
+    if (p1 == 0 && p2 == 0){
+        new_norms[i] = 0;
+        return;
+    }
+  
     int line_x[MAX_WIDTH];
     int line_y[MAX_WIDTH];
     int line_length;
@@ -245,12 +249,12 @@ __global__ void remove_lines_kernel(
         new_norms[i] = 0;
     }
 }
-
+  
 int remove_lines(
-    int* x_coords, int* y_coords, int numPins, int cropped_width, size_t* bestNorm,
-    int* found_pin1, int* found_pin2, int line_count,
-    unsigned char* constructed_img, unsigned char* inverted_img, unsigned char* img, int cropped_size){
-    
+int* x_coords, int* y_coords, int numPins, int cropped_width, size_t* bestNorm,
+int* found_pin1, int* found_pin2, int line_count,
+unsigned char* constructed_img, unsigned char* inverted_img, unsigned char* img, int cropped_size){
+
     int coords_size = sizeof(int) * numPins;
     int* device_x_coords;
     int* device_y_coords;
@@ -258,7 +262,7 @@ int remove_lines(
     cudaMalloc(&device_y_coords, coords_size);
     cudaMemcpy(device_x_coords, x_coords, coords_size, cudaMemcpyHostToDevice);
     cudaMemcpy(device_y_coords, y_coords, coords_size, cudaMemcpyHostToDevice);
-    
+
     int img_size = sizeof(unsigned char) * cropped_size;
     unsigned char* device_constructed_img;
     unsigned char* device_inverted_img;
