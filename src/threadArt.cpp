@@ -480,13 +480,19 @@ int main(int argc, char* argv[]) {
                 continue;
             } 
             else {
+                if (line_count >= numPins*numPins-1) { // too many lines
+                    printf("1 pass of adding is done \n");
+                    isAdd = false; // try deleting lines
+                    noAddition = true;
+                    continue;
+                } 
                 printf("adding (%d, %d)\n", bestPin1, bestPin2);
                 find_linePixels(x_coords[bestPin1], y_coords[bestPin1], x_coords[bestPin2], y_coords[bestPin2], line_x, line_y, &line_length, cropped_width);
                 add_line2Img(constructed_img, img, cropped_width, line_x, line_y, line_length);
                 found_pin1[line_count] = bestPin1;
                 found_pin2[line_count] = bestPin2;
                 line_count ++;
-                assert(line_count< numPins*numPins);
+                assert(line_count <= numPins*numPins);
             }
         }
         else { //isAdd == false
