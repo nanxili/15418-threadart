@@ -329,7 +329,7 @@ int main(int argc, char* argv[]) {
     int opt;
     int out_width = 512;
     int numPins = 64;
-    int contrast = 0;
+    int contrast = -50;
     std::string file_name;
     static struct option long_options[] = {
         {"help", 0, 0,  'h'},
@@ -474,19 +474,16 @@ int main(int argc, char* argv[]) {
             }
 
             if (bestPin1 == bestPin2) { // no line can make norm any smaller
-                printf("1 pass of adding is done \n");
                 isAdd = false; // try deleting lines
                 noAddition = true;
                 continue;
             } 
             else {
                 if (line_count >= numPins*numPins-1) { // too many lines
-                    printf("1 pass of adding is done \n");
                     isAdd = false; // try deleting lines
                     noAddition = true;
                     continue;
                 } 
-                printf("adding (%d, %d)\n", bestPin1, bestPin2);
                 find_linePixels(x_coords[bestPin1], y_coords[bestPin1], x_coords[bestPin2], y_coords[bestPin2], line_x, line_y, &line_length, cropped_width);
                 add_line2Img(constructed_img, img, cropped_width, line_x, line_y, line_length);
                 found_pin1[line_count] = bestPin1;
@@ -496,7 +493,6 @@ int main(int argc, char* argv[]) {
             }
         }
         else { //isAdd == false
-            printf("inside else\n");
             int line_count_tmp = 0;
             int found_pin1_tmp[numPins*numPins];
             int found_pin2_tmp[numPins*numPins];
@@ -518,7 +514,6 @@ int main(int argc, char* argv[]) {
                     // printf("checking if to remove (%d,%d)\n",p1,p2); 
                     if (tmp_norm < bestNorm) {
                         noAddition = false;
-                        printf("removing (%d,%d)\n",p1,p2); 
                         bestNorm = tmp_norm;
                     }
                     else {
@@ -536,14 +531,12 @@ int main(int argc, char* argv[]) {
                     found_pin1[i] = found_pin1_tmp[i];
                     found_pin2[i] = found_pin2_tmp[i];
                 }
-                printf("done with one continuous removal pass\n");
             }
             memcpy(&img, &original_img, sizeof(img));
             assert(line_count != 0);
             draw_all_lines(found_pin1, found_pin2, line_count, x_coords, y_coords, constructed_img, img, cropped_width);
             isAdd = true;
             noRemoval = true;
-            printf("1 pass of removing is done\n");
         }
         // update norm
         if (noAddition && noRemoval) break;
