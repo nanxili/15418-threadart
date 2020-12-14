@@ -15,6 +15,12 @@
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb_image/stb_image_resize.h"
 
+void find_best_pins(int* x_coords, int* y_coords, int numPins, int cropped_width, int* bestPin1, int* bestPin2, size_t* bestNorm, unsigned char* constructed_img, unsigned char* inverted_img, int cropped_size);
+int remove_lines(
+    int* x_coords, int* y_coords, int numPins, int cropped_width, size_t* bestNorm,
+    int* found_pin1, int* found_pin2, int line_count,
+    unsigned char* constructed_img, unsigned char* inverted_img, unsigned char* img, int cropped_size);
+
 std::clock_t currTime;
 double duration;
 
@@ -77,6 +83,9 @@ void gray_scale_image(unsigned char *orig_img, int img_size, unsigned char *gray
 }
 
 void contrast_image(unsigned char *img, int img_size, int channels, int contrast) {
+    // int contrast = 250;
+    // int contrast = 0;
+    // int contrast = -100;
     float factor = (259.0 * (contrast + 255.0)) / (255.0 * (259.0 - contrast));
     for(unsigned char *pg = img; pg != img + img_size; pg += channels) {
         uint8_t p = (uint8_t)*pg;
@@ -113,7 +122,6 @@ void find_pinCords(int numPins, int radius, int width, int* x_coords, int* y_coo
     int x0 = radius;
     int y0 = radius;
     float a = 2*M_PI/numPins;
-    // printf("Radius %d, width %d\n", radius, width);
     for (int i=0; i<numPins; i++) {
         float angle = a * i;
         float x = x0 + radius*cos(angle);
@@ -124,8 +132,6 @@ void find_pinCords(int numPins, int radius, int width, int* x_coords, int* y_coo
         y_coords[i] = (y > 0.0) ? floor(y + 0.5) : ceil(y - 0.5);
         if (y_coords[i] >= width) y_coords[i] = width-1;
         if (y_coords[i] <0) y_coords[i] = 0;
-        // printf("[%d](%d,%d) ", i, x_coords[i], y_coords[i]);
-        
     }
     printf("Found pinCords\n");
 }
@@ -135,7 +141,6 @@ void plot_pinCords(unsigned char *img, int numPins, int width, int* x_coords, in
     for (size_t i=0; i<numPins; i++) {
         int x = x_coords[i];
         int y = y_coords[i];
-        // printf("i: %lu, x: %d, y: %d \n", i, x, y);
         // make pin 9 pixels size to be more visible
         if (y>0) img[(y-1)*width+x] = 255-(255*i/numPins);
         if (y>1) img[(y-2)*width+x] = 255-(255*i/numPins);
@@ -257,7 +262,6 @@ size_t l2_norm(unsigned char* constructed_img, unsigned char* inverted_img, int 
         }
 
         else {
-            // assert (tmp_img[y*width+x] != 0);
             if (tmp_img[y*width+x] == 0) tmp_img[y*width+x] = 0;
             else if (tmp_img[y*width+x] == 100) tmp_img[y*width+x] = 0;
             else tmp_img[y*width+x] -= 5;
@@ -271,7 +275,6 @@ size_t l2_norm(unsigned char* constructed_img, unsigned char* inverted_img, int 
 
     return l2_norm;
 }
-
 void add_line2Img(unsigned char* constructed_img, unsigned char* img, int width, int* line_x, int* line_y, int length) {
     for (size_t i = 0; i<length; i++) {
         int x = line_x[i];
@@ -288,10 +291,7 @@ void add_line2Img(unsigned char* constructed_img, unsigned char* img, int width,
 }
 
 void draw_all_lines(int* found_p1, int* found_p2, int line_count, int* x_coords, int* y_coords, unsigned char* constructed_img, unsigned char* img, int width){
-    // for each pair (p1,p2) in queue
-    //   get coord of p1, found_p2
-    //   get the line between p1,p2,
-    //   draw the line 
+    // for each pair (p1,p2) in queue 1)get coord of p1, found_p2 2)get the line between p1,p2, 3)draw the line 
     for (size_t i = 0; i < width * width; i++) {
         constructed_img[i] = 0;
     }
@@ -313,7 +313,6 @@ void draw_all_lines(int* found_p1, int* found_p2, int line_count, int* x_coords,
     }
 }
 
-
 void usage(const char* progname) {
     printf("Program Options:\n");
     printf("  -f  --file_name <FILE_TO_READ>    must be of format jpg\n");
@@ -323,13 +322,12 @@ void usage(const char* progname) {
     printf("  -h  --help                        This message\n");
 }
 
-
 int main(int argc, char* argv[]) {
     // parse command line options
     int opt;
     int out_width = 512;
     int numPins = 64;
-    int contrast = 0;
+    int contrast = -50;
     std::string file_name;
     static struct option long_options[] = {
         {"help", 0, 0,  'h'},
@@ -367,6 +365,7 @@ int main(int argc, char* argv[]) {
     }
 
     std::cout << "file name: " << file_name << ", outputs size: " << out_width << ", number of pins: " << numPins << ", contrast: " << contrast << std::endl;
+
     std::clock_t prevTime;
     prevTime = std::clock();
 
@@ -382,8 +381,7 @@ int main(int argc, char* argv[]) {
     size_t gray_img_size = width * height * gray_channels;
     unsigned char *gray_img = (unsigned char*)malloc(gray_img_size);
     gray_scale_image(input_img, img_size, gray_img, channels, gray_channels);
-    // stbi_write_jpg("../test_images/peace_gray.jpg", width, height, gray_channels, gray_img, 100);
-    
+
     // crop image to a square
     size_t shorterEdge = width>height ? height : width;
     float widthFrac = 1-((float)shorterEdge)/width;
@@ -398,7 +396,7 @@ int main(int argc, char* argv[]) {
         STBIR_TYPE_UINT8, gray_channels, -1, 0, 
         STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP, STBIR_FILTER_DEFAULT, STBIR_FILTER_DEFAULT, STBIR_COLORSPACE_LINEAR, 
         NULL, widthFrac/2, heightFrac/2, 1-widthFrac/2, 1-heightFrac/2);
-    // stbi_write_jpg((file_name+"NP"+std::to_string(numPins) + "w" + std::to_string(cropped_width)+"_cropped.jpg").c_str(), cropped_width, cropped_width, gray_channels, img, 100);
+
     unsigned char* original_img = (unsigned char*)malloc(cropped_size); // for restoration
     memcpy ( &original_img, &img, sizeof(img) );
     free(input_img);
@@ -406,16 +404,13 @@ int main(int argc, char* argv[]) {
 
     // adds contrast to image
     contrast_image(img, cropped_size, gray_channels, contrast); 
-    // stbi_write_jpg((file_name+"NP"+std::to_string(numPins) + "w" + std::to_string(cropped_width)+"_contrast.jpg").c_str(), cropped_width, cropped_width, gray_channels, img, 100);
 
     // mask image to circle, need to use a image that does not have white background
     crop_circle(img, cropped_width, cropped_width/2);
-    // stbi_write_jpg((file_name+"NP"+std::to_string(numPins) + "w" + std::to_string(cropped_width)+"_circle.jpg").c_str(), cropped_width, cropped_width, gray_channels, img, 100);
 
     // invert image so that darker pixel has greater value
     unsigned char* inverted_img = (unsigned char*)malloc(cropped_size);
     invert_image(img, inverted_img, cropped_size, gray_channels);
-    // stbi_write_jpg((file_name+"NP"+std::to_string(numPins) + "w" + std::to_string(cropped_width)+"_inverted.jpg").c_str(), cropped_width, cropped_width, gray_channels, inverted_img, 100);
     
     TIMER(prevTime, "preprocessing")
     // find pin coordinates
@@ -423,7 +418,7 @@ int main(int argc, char* argv[]) {
     int y_coords[numPins];
     find_pinCords(numPins, cropped_width/2, cropped_width, x_coords, y_coords);
     plot_pinCords(img, numPins, cropped_width, x_coords, y_coords);
-    stbi_write_jpg((file_name+"NP"+std::to_string(numPins) + "w" + std::to_string(cropped_width)+ "c" + std::to_string(contrast) + "_pins.jpg").c_str(), cropped_width, cropped_width, gray_channels, img, 100);
+    // stbi_write_jpg((file_name+"NP"+std::to_string(numPins) + "w" + std::to_string(cropped_width)+ "c" + std::to_string(contrast) + "_pins.jpg").c_str(), cropped_width, cropped_width, gray_channels, img, 100);
     TIMER(prevTime, "finding pins");
 
     size_t currNorm = 0;
@@ -445,9 +440,11 @@ int main(int argc, char* argv[]) {
     for (size_t i = 0; i<cropped_size; i++) {
         test_img[i] = 0;
     }
+
     unsigned char* test_img_original = (unsigned char*)malloc(cropped_size);
     memcpy(test_img_original, constructed_img, sizeof(test_img));
     size_t bestNorm = currNorm;
+    size_t new_bestNorm = currNorm;
     bool noAddition = false;
     bool noRemoval = false;
 
@@ -456,23 +453,19 @@ int main(int argc, char* argv[]) {
     int found_pin2[numPins*numPins];
 
     while (true) {
-        int bestPin1 = 0;
-        int bestPin2 = 0;
         if (isAdd) {
             // find the line starting from pin that has the biggest norm reduction
-            for (size_t i = 0; i<numPins; i++) {
-                for (size_t j = 0; j<i; j++) {
-                    find_linePixels(x_coords[i], y_coords[i], x_coords[j], y_coords[j], line_x, line_y, &line_length, cropped_width);
-                    size_t tmp_norm = l2_norm(constructed_img, inverted_img, cropped_size, cropped_width, line_x, line_y, line_length, true);
-                    if (tmp_norm < bestNorm) {
-                        noRemoval = false;
-                        bestPin1 = i;
-                        bestPin2 = j;
-                        bestNorm = tmp_norm;
-                    }
-                }
-            }
+            int bestPin1 = 0;
+            int bestPin2 = 0;
 
+            find_best_pins(x_coords, y_coords, numPins, cropped_width, &bestPin1, &bestPin2, &new_bestNorm, constructed_img, inverted_img, cropped_size);
+
+            if (new_bestNorm < bestNorm) {
+                noRemoval = false;
+                bestNorm = new_bestNorm;
+            }
+            new_bestNorm = bestNorm;
+            
             if (bestPin1 == bestPin2) { // no line can make norm any smaller
                 printf("1 pass of adding is done \n");
                 isAdd = false; // try deleting lines
@@ -480,61 +473,58 @@ int main(int argc, char* argv[]) {
                 continue;
             } 
             else {
-                printf("adding (%d, %d)\n", bestPin1, bestPin2);
+                if (line_count >= numPins*numPins-1) { // too many lines
+                    printf("1 pass of adding is done \n");
+                    isAdd = false; // try deleting lines
+                    noAddition = true;
+                    continue;
+                } 
+                // printf("adding (%d, %d)\n", bestPin1, bestPin2);
                 find_linePixels(x_coords[bestPin1], y_coords[bestPin1], x_coords[bestPin2], y_coords[bestPin2], line_x, line_y, &line_length, cropped_width);
                 add_line2Img(constructed_img, img, cropped_width, line_x, line_y, line_length);
                 found_pin1[line_count] = bestPin1;
                 found_pin2[line_count] = bestPin2;
                 line_count ++;
-                assert(line_count< numPins*numPins);
+                assert(line_count <= numPins*numPins);
             }
+            
         }
         else { //isAdd == false
-            printf("inside else\n");
+            new_bestNorm = bestNorm;
+            int remove_line_count = remove_lines(
+                x_coords, y_coords, numPins, cropped_width, &new_bestNorm,
+                found_pin1, found_pin2, line_count,
+                constructed_img, inverted_img, img, cropped_size);
+            if (new_bestNorm < bestNorm) {
+                noAddition = false;
+                bestNorm = new_bestNorm;
+            }
+            assert(line_count != 0);
             int line_count_tmp = 0;
             int found_pin1_tmp[numPins*numPins];
             int found_pin2_tmp[numPins*numPins];
 
-            // go through all lines to remove the ones that will reduce the norm
-            while (line_count_tmp != line_count){
-                if (line_count_tmp != 0) {
-                    line_count = line_count_tmp;
-                    line_count_tmp = 0;
+            for (int i = 0; i < line_count; i++){
+                int p1 = found_pin1[i];
+                int p2 = found_pin2[i];
+                // restore in array for next iteration
+                if (!(p1 == 0 && p2 == 0)){
+                    found_pin1_tmp[line_count_tmp] = p1;
+                    found_pin2_tmp[line_count_tmp] = p2;
+                    line_count_tmp++;
                 }
-                for (int i = 0; i < line_count; i++){
-                    int p1 = found_pin1[i];
-                    int p2 = found_pin2[i];
-                    found_pin1[i] = 0;
-                    found_pin2[i] = 0;
-                    memcpy(&img, &original_img, sizeof(img));
-                    draw_all_lines(found_pin1, found_pin2, line_count, x_coords, y_coords, constructed_img, img, cropped_width);
-                    size_t tmp_norm = l2_norm(constructed_img, inverted_img, cropped_size, cropped_width, line_x, line_y, line_length, false);
-                    // printf("checking if to remove (%d,%d)\n",p1,p2); 
-                    if (tmp_norm < bestNorm) {
-                        noAddition = false;
-                        printf("removing (%d,%d)\n",p1,p2); 
-                        bestNorm = tmp_norm;
-                    }
-                    else {
-                        // restore in array for next iteration
-                        found_pin1[i] = p1;
-                        found_pin2[i] = p2;
-                        // add to tmp
-                        found_pin1_tmp[line_count_tmp] = p1;
-                        found_pin2_tmp[line_count_tmp] = p2;
-                        line_count_tmp ++;
-                    }
-                }
-                // copy from tmp array to array
-                for (int i = 0 ; i < line_count_tmp; i ++){
-                    found_pin1[i] = found_pin1_tmp[i];
-                    found_pin2[i] = found_pin2_tmp[i];
-                }
-                printf("done with one continuous removal pass\n");
             }
+            // copy from tmp array to array
+            for (int i = 0 ; i < line_count_tmp; i ++){
+                found_pin1[i] = found_pin1_tmp[i];
+                found_pin2[i] = found_pin2_tmp[i];
+            }
+
+            assert(line_count_tmp+remove_line_count == line_count);
+            line_count = line_count_tmp;
             memcpy(&img, &original_img, sizeof(img));
-            assert(line_count != 0);
             draw_all_lines(found_pin1, found_pin2, line_count, x_coords, y_coords, constructed_img, img, cropped_width);
+
             isAdd = true;
             noRemoval = true;
             printf("1 pass of removing is done\n");
