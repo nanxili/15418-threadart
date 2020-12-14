@@ -3,7 +3,7 @@
 ### Author 
 Catherine Yu (tianhony) Nanxi Li (nanxil1)
 
-### Summary
+### Summaryg
 String art is an image solely composed of strings between pins around a circular canvas. We implemented a parallelized string art solver in C++ and CUDA that computes the string art best resembling the input image. We developed our algorithm from scratch based on the sequential greedy approach proposed in paper by Brisak et al. We modified the proposed algorithm while implementing our sequential version of the solver, so that algorithm would have more parallelism to exploit while outputting more accurate string art image. We then developed our parallel version of the solver, which produces the same output as the sequential solver in a considerably shorter runtime. We were able to achieve an over 221x speedup on a 512*512 image with 128 pins. 
 
 ### Running the Code
@@ -31,3 +31,4 @@ Program Options:
 ```
 
 For more information regarding the implementation, visit the [project page](https://nanxili.github.io/15418-threadart/).
+
